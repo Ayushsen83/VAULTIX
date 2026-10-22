@@ -4,12 +4,14 @@ require("dotenv").config();
 const express = require("express");
 const cors = require("cors");
 const pool = require("./db");
-
+const registerRoutes = require("./routes/register");
+const loginRoutes = require("./routes/login");
 const app = express();
 
 app.use(cors());
 app.use(express.json());
-
+app.use("/api/auth/register", registerRoutes);
+app.use("/api/auth/login", loginRoutes);
 // Test backend
 app.get("/", (req, res) => {
   res.json({ message: "Secure Digital Locker API is running" });
