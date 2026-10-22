@@ -10,7 +10,6 @@ const notesRoutes = require("./routes/notes.routes");
 const { authenticateToken } = require("./middleware/auth.middleware");
 const app = express();
 
-const cors = require("cors");
 
 const allowedOrigins = [
   "http://localhost:5173",
