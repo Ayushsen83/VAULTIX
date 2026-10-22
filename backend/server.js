@@ -10,7 +10,28 @@ const notesRoutes = require("./routes/notes.routes");
 const { authenticateToken } = require("./middleware/auth.middleware");
 const app = express();
 
-app.use(cors());
+const cors = require("cors");
+
+const allowedOrigins = [
+  "http://localhost:5173",
+  process.env.FRONTEND_URL,
+];
+
+app.use(
+  cors({
+    origin: (origin, callback) => {
+      // Allow requests without an Origin header,
+      // such as some server-to-server and local tools.
+      if (!origin || allowedOrigins.includes(origin)) {
+        return callback(null, true);
+      }
+
+      return callback(new Error("Origin not allowed by CORS"));
+    },
+    methods: ["GET", "POST", "PUT", "PATCH", "DELETE"],
+    allowedHeaders: ["Content-Type", "Authorization"],
+  })
+);
 app.use(express.json());
 app.use("/api/auth/register", registerRoutes);
 app.use("/api/auth/login", loginRoutes);
