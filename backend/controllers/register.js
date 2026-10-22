@@ -92,7 +92,7 @@ const registerUser = async (req, res, next) => {
       "SELECT user_id FROM users WHERE email = $1 LIMIT 1",
       [normalizedEmail]
     );
-
+    console.log("Existing user check result:", existingUser.rows);
     if (existingUser.rows.length > 0) {
       return res.status(409).json({
         success: false,
@@ -125,8 +125,7 @@ const registerUser = async (req, res, next) => {
       success: true,
       message: "Registration successful.",
       user: result.rows[0],
-    });
-  } catch (error) {
+    });  } catch (error) {
     // Handle concurrent attempts to register the same email
     if (error.code === "23505") {
       return res.status(409).json({
@@ -134,7 +133,7 @@ const registerUser = async (req, res, next) => {
         message: "An account with this email already exists.",
       });
     }
-
+    console.error("Registration error:", error);
     next(error);
   }
 };
