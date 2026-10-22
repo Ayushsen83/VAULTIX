@@ -36,7 +36,15 @@ app.get("/api/db-test", async (req, res) => {
     });
   }
 });
+const { authenticateToken } = require("./middleware/auth.middleware");
 
+app.get("/api/auth/me", authenticateToken, (req, res) => {
+  res.status(200).json({
+    success: true,
+    message: "Authentication successful.",
+    user_id: req.user.user_id,
+  });
+});
 const PORT = process.env.PORT || 5000;
 
 app.listen(PORT, () => {
