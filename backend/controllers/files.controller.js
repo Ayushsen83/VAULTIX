@@ -5,7 +5,6 @@ const multer = require("multer");
 const pool = require("../db");
 const storage = require("../services/storage.service");
 
-const path = require("path");
 
 const ALLOWED_TYPES = {
   ".pdf": {
@@ -122,16 +121,7 @@ const upload = multer({
 });
 
 
-const validation = await validateUploadedFile(file);
 
-if (!validation.valid) {
-  return res.status(400).json({
-    success: false,
-    message: validation.message,
-  });
-}
-
-const { ext, mimeType, maxSize } = validation;
 
 
 function validId(id) {
@@ -166,14 +156,18 @@ async function createFile(req, res, next) {
       });
     }
 
-    const allowed = getAllowedFile(file);
+    
+const validation = await validateUploadedFile(file);
 
-    if (!allowed || file.size > allowed.maxSize) {
-      return res.status(400).json({
-        success: false,
-        message: "Only PDF (max 50 MB) and MP3, WAV, or M4A (max 10 MB) files are allowed.",
-      });
-    }
+if (!validation.valid) {
+  return res.status(400).json({
+    success: false,
+    message: validation.message,
+  });
+}
+
+const { ext, mimeType, maxSize } = validation;
+  
 
     const quotaResult = await pool.query(
       `SELECT COALESCE(SUM(size_bytes), 0) AS used_bytes
