@@ -1,4 +1,3 @@
-
 const argon2 = require("argon2");
 const jwt = require("jsonwebtoken");
 const pool = require("../db");
@@ -35,51 +34,48 @@ const loginUser = async (req, res, next) => {
 
     const user = result.rows[0];
 
-    // 3. Verify password without revealing whether the email exists
-    if (!user) {
+    // 3. Verify password
+    if (
+      !user ||
+      !(await argon2.verify(user.password_hash, password))
+    ) {
       return res.status(401).json({
         success: false,
         message: "Invalid email or password.",
       });
     }
 
-    const passwordMatches = await argon2.verify(
-      user.password_hash,
-      password
-    );
-
-    if (!passwordMatches) {
-      return res.status(401).json({
-        success: false,
-        message: "Invalid email or password.",
-      });
-    }
-
-    // 4. Ensure the JWT secret is configured
+    // 4. Validate JWT configuration
     const jwtSecret = process.env.JWT_SECRET;
 
     if (!jwtSecret || Buffer.byteLength(jwtSecret, "utf8") < 32) {
       throw new Error("JWT_SECRET is missing or too short.");
     }
 
-    // 5. Generate a short-lived access token
-    const token = jwt.sign(
-      {},
-      jwtSecret,
-      {
-        algorithm: "HS256",
-        subject: String(user.user_id),
-        issuer: "vaultix-api",
-        audience: "vaultix-client",
-        expiresIn: process.env.JWT_EXPIRES_IN || "15m",
-      }
-    );
+    // 5. Generate JWT
+    const token = jwt.sign({}, jwtSecret, {
+      algorithm: "HS256",
+      subject: String(user.user_id),
+      issuer: "vaultix-api",
+      audience: "vaultix-client",
+      expiresIn: "15m",
+    });
 
-    // 6. Return token and safe user information
+    // 6. Store JWT in an HttpOnly cookie
+    const isProduction = process.env.NODE_ENV === "production";
+
+    res.cookie("vaultix_token", token, {
+      httpOnly: true,
+      secure: isProduction,
+      sameSite: "lax",
+      path: "/",
+      maxAge: 15 * 60 * 1000,
+    });
+
+    // 7. Return safe user information, never the JWT
     return res.status(200).json({
       success: true,
       message: "Login successful.",
-      token,
       user: {
         user_id: user.user_id,
         name: user.name,

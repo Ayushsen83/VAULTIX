@@ -3,67 +3,64 @@ require("dotenv").config();
 
 const express = require("express");
 const cors = require("cors");
-const pool = require("./db");
+const cookieParser = require("cookie-parser");
+
 const registerRoutes = require("./routes/register");
 const loginRoutes = require("./routes/login");
 const notesRoutes = require("./routes/notes.routes");
-const { authenticateToken } = require("./middleware/auth.middleware");
+const { authenticateToken } = require("./middleware/auth.middleware.js");
+const { doubleCsrfProtection } = require("./middleware/csrf.middleware.js");
+const csrfRoutes = require("./routes/csrf.routes");
 const app = express();
 
+// 1. Parse request bodies and cookies
+app.use(express.json({ limit: "1mb" }));
+app.use(cookieParser());
 
+// 2. Configure allowed frontend origins
 const allowedOrigins = [
   "http://localhost:5173",
   process.env.FRONTEND_URL,
-];
+].filter(Boolean);
 
 app.use(
   cors({
     origin: (origin, callback) => {
-      // Allow requests without an Origin header,
-      // such as some server-to-server and local tools.
+      // Requests without Origin are allowed for tools and server-to-server calls.
       if (!origin || allowedOrigins.includes(origin)) {
         return callback(null, true);
       }
 
       return callback(new Error("Origin not allowed by CORS"));
     },
-    methods: ["GET", "POST", "PUT", "PATCH", "DELETE"],
-    allowedHeaders: ["Content-Type", "Authorization"],
+    credentials: true,
+    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "X-CSRF-Token"],
   })
 );
-app.use(express.json());
+
+// 3. Authentication routes
 app.use("/api/auth/register", registerRoutes);
 app.use("/api/auth/login", loginRoutes);
-app.use("/api/notes", authenticateToken, notesRoutes);
+app.use("/api/csrf", csrfRoutes);
 
-// Test backend
+// 4. Protected notes API
+app.use("/api/notes", authenticateToken, doubleCsrfProtection, notesRoutes);
+
+// 5. Health endpoints
 app.get("/", (req, res) => {
-  res.json({ message: "Secure Digital Locker API is running" });
+  res.json({
+    message: "Secure Digital Locker API is running",
+  });
 });
+
 app.get("/health", (req, res) => {
   res.status(200).json({ status: "healthy" });
 });
-// Test PostgreSQL connection
-// app.get("/api/db-test", async (req, res) => {
-//   try {
-//     const result = await pool.query(
-//       "SELECT current_database() AS database, NOW() AS server_time"
-//     );
 
-//     res.json({
-//       message: "PostgreSQL connected successfully",
-//       database: result.rows[0].database,
-//       serverTime: result.rows[0].server_time,
-//     });
-//   } catch (error) {
-//     console.error("Database test failed:", error.message);
-//     res.status(500).json({
-//       message: "Database connection failed",
-//     });
-//   }
-// });
+// 6. Start server
 const PORT = process.env.PORT || 5000;
 
-app.listen(PORT, () => {
-  console.log(`Server running on http://localhost:${PORT}`);
+app.listen(PORT, "0.0.0.0", () => {
+  console.log(`VAULTIX API running on port ${PORT}`);
 });
