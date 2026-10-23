@@ -10,6 +10,7 @@ const notesRoutes = require("./routes/notes.routes");
 const { authenticateToken } = require("./middleware/auth.middleware.js");
 const { doubleCsrfProtection } = require("./middleware/csrf.middleware.js");
 const csrfRoutes = require("./routes/csrf.routes");
+const filesRoutes = require("./routes/files.routes");
 const app = express();
 
 // 1. Parse request bodies and cookies
@@ -46,7 +47,10 @@ app.use("/api/csrf", csrfRoutes);
 // 4. Protected notes API
 app.use("/api/notes", authenticateToken, doubleCsrfProtection, notesRoutes);
 
-// 5. Health endpoints
+// 5. Protected files API
+app.use("/api/files", filesRoutes);
+
+// 6. Health endpoints
 app.get("/", (req, res) => {
   res.json({
     message: "Secure Digital Locker API is running",
