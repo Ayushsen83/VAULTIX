@@ -5,36 +5,134 @@ const multer = require("multer");
 const pool = require("../db");
 const storage = require("../services/storage.service");
 
+const path = require("path");
+
+const ALLOWED_TYPES = {
+  ".pdf": {
+    mimeType: "application/pdf",
+    maxSize: 50 * 1024 * 1024,
+    detectedMime: "application/pdf",
+  },
+  ".mp3": {
+    mimeType: "audio/mpeg",
+    maxSize: 10 * 1024 * 1024,
+    detectedMime: "audio/mpeg",
+  },
+  ".wav": {
+    mimeType: "audio/wav",
+    maxSize: 10 * 1024 * 1024,
+    detectedMime: "audio/wav",
+  },
+  ".m4a": {
+    mimeType: "audio/mp4",
+    maxSize: 10 * 1024 * 1024,
+    detectedMime: "audio/mp4",
+  },
+};
+
+async function validateUploadedFile(file) {
+  if (!file || !Buffer.isBuffer(file.buffer)) {
+    return { valid: false, message: "No valid file was uploaded." };
+  }
+
+  const ext = path.extname(file.originalname).toLowerCase();
+  const config = ALLOWED_TYPES[ext];
+
+  if (!config) {
+    return { valid: false, message: "File extension is not supported." };
+  }
+
+  if (file.size <= 0 || file.size > config.maxSize) {
+    return { valid: false, message: "File size is outside the allowed limit." };
+  }
+
+  if (file.mimetype !== config.mimeType) {
+    return { valid: false, message: "File MIME type does not match the extension." };
+  }
+
+  const { fileTypeFromBuffer } = await import("file-type");
+  const detected = await fileTypeFromBuffer(file.buffer);
+
+  if (ext === ".pdf") {
+    // PDF signatures begin with %PDF-
+    const header = file.buffer.subarray(0, 1024).toString("latin1");
+
+    if (!header.includes("%PDF-")) {
+      return { valid: false, message: "The file is not a valid PDF." };
+    }
+  } else if (ext === ".mp3") {
+    if (!detected || detected.mime !== "audio/mpeg") {
+      return { valid: false, message: "The file is not a valid MP3." };
+    }
+  } else if (ext === ".wav") {
+    if (!detected || detected.mime !== "audio/wav") {
+      return { valid: false, message: "The file is not a valid WAV." };
+    }
+  } else if (ext === ".m4a") {
+    if (!detected || detected.mime !== "audio/mp4") {
+      return { valid: false, message: "The file is not a valid M4A audio file." };
+    }
+  }
+
+  return {
+    valid: true,
+    ext,
+    mimeType: config.mimeType,
+    maxSize: config.maxSize,
+  };
+}
+
 // Upload limits
 const PDF_MAX_SIZE = 50 * 1024 * 1024;
 const AUDIO_MAX_SIZE = 10 * 1024 * 1024;
 const USER_QUOTA = 100 * 1024 * 1024;
 
-const ALLOWED_TYPES = {
-  ".pdf": ["application/pdf", PDF_MAX_SIZE],
-  ".mp3": ["audio/mpeg", AUDIO_MAX_SIZE],
-  ".wav": ["audio/wav", AUDIO_MAX_SIZE],
-  ".m4a": ["audio/mp4", AUDIO_MAX_SIZE],
-};
+// const ALLOWED_TYPES = {
+//   ".pdf": ["application/pdf", PDF_MAX_SIZE],
+//   ".mp3": ["audio/mpeg", AUDIO_MAX_SIZE],
+//   ".wav": ["audio/wav", AUDIO_MAX_SIZE],
+//   ".m4a": ["audio/mp4", AUDIO_MAX_SIZE],
+// };
+
 
 const upload = multer({
   storage: multer.memoryStorage(),
   limits: {
-    fileSize: PDF_MAX_SIZE,
+    fileSize: 50 * 1024 * 1024,
     files: 1,
+    fields: 10,
+    parts: 12,
+  },
+  fileFilter: (req, file, callback) => {
+    const ext = path.extname(file.originalname).toLowerCase();
+    const config = ALLOWED_TYPES[ext];
+
+    if (!config) {
+      return callback(new Error("Unsupported file extension."));
+    }
+
+    if (file.mimetype !== config.mimeType) {
+      return callback(new Error("File MIME type does not match extension."));
+    }
+
+    // Store the per-type maximum for validation after upload.
+    req.maxAllowedFileSize = config.maxSize;
+    callback(null, true);
   },
 });
 
-function getAllowedFile(file) {
-  const ext = path.extname(file.originalname).toLowerCase();
-  const config = ALLOWED_TYPES[ext];
 
-  if (!config || file.mimetype !== config[0]) {
-    return null;
-  }
+const validation = await validateUploadedFile(file);
 
-  return { ext, mimeType: config[0], maxSize: config[1] };
+if (!validation.valid) {
+  return res.status(400).json({
+    success: false,
+    message: validation.message,
+  });
 }
+
+const { ext, mimeType, maxSize } = validation;
+
 
 function validId(id) {
   return typeof id === "string" &&
