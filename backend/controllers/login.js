@@ -58,7 +58,7 @@ const loginUser = async (req, res, next) => {
       subject: String(user.user_id),
       issuer: "vaultix-api",
       audience: "vaultix-client",
-      expiresIn: "15m",
+      expiresIn: process.env.JWT_EXPIRES_IN ,
     });
 
     // 6. Store JWT in an HttpOnly cookie
