@@ -131,14 +131,32 @@ function validId(id) {
 
 function handleUploadError(err, req, res, next) {
   if (err instanceof multer.MulterError) {
-    const message = err.code === "LIMIT_FILE_SIZE"
-      ? "File exceeds the maximum upload size."
-      : "Invalid upload request.";
+    console.error("Multer error:", err.code, err.message);
 
-    return res.status(400).json({ success: false, message });
+    const message =
+      err.code === "LIMIT_FILE_SIZE"
+        ? "File exceeds the maximum upload size."
+        : err.code === "LIMIT_UNEXPECTED_FILE"
+          ? 'Unexpected file field. Use the field name "file".'
+          : "Invalid upload request.";
+
+    return res.status(400).json({
+      success: false,
+      message,
+      code: err.code,
+    });
   }
 
-  return next(err);
+  if (err) {
+    console.error("Upload middleware error:", err.message);
+
+    return res.status(400).json({
+      success: false,
+      message: err.message,
+    });
+  }
+
+  return next();
 }
 
 // POST /api/files
@@ -185,20 +203,20 @@ const { ext, mimeType, maxSize } = validation;
       });
     }
 
-    storageKey = `${userId}/${randomUUID()}${allowed.ext}`;
+    storageKey = `${userId}/${randomUUID()}${ext}`;
 
-    await storage.uploadFile({
-      key: storageKey,
-      buffer: file.buffer,
-      contentType: allowed.mimeType,
-    });
+await storage.uploadFile({
+  key: storageKey,
+  buffer: file.buffer,
+  contentType: mimeType,
+});
 
     const result = await pool.query(
       `INSERT INTO files
          (user_id, file_name, storage_key, mime_type, size_bytes)
        VALUES ($1, $2, $3, $4, $5)
        RETURNING id, file_name, mime_type, size_bytes, created_at`,
-      [userId, file.originalname, storageKey, allowed.mimeType, file.size]
+      [userId, file.originalname, storageKey, mimeType, file.size]
     );
 
     return res.status(201).json({
