@@ -3,7 +3,7 @@ require("dotenv").config();
 const express = require("express");
 const cors = require("cors");
 const cookieParser = require("cookie-parser");
-
+const helmet = require("helmet");
 const registerRoutes = require("./routes/register");
 const loginRoutes = require("./routes/login");
 const notesRoutes = require("./routes/notes.routes");
@@ -23,13 +23,14 @@ const app = express();
 // 1. Parse request bodies and cookies
 app.use(express.json({ limit: "1mb" }));
 app.use(cookieParser());
+app.use(helmet());
 
 // 2. Configure allowed frontend origins
 const allowedOrigins = [
   "http://localhost:5173",
   process.env.FRONTEND_URL,
 ].filter(Boolean);
-
+app.set("trust proxy", 1);
 app.use(
   cors({
     origin: (origin, callback) => {
@@ -45,7 +46,12 @@ app.use(
     allowedHeaders: ["Content-Type", "X-CSRF-Token"],
   }),
 );
-
+app.get("/debug/client-ip", (req, res) => {
+  res.json({
+    ip: req.ip,
+    ips: req.ips,
+  });
+});
 // 3. Authentication routes
 app.use("/api/auth/register", registerLimiter, registerRoutes);
 app.use("/api/auth/login", loginLimiter, loginRoutes);
