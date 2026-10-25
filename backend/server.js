@@ -18,6 +18,10 @@ const {
   registerLimiter,
   uploadLimiter,
 } = require("./middleware/rateLimit.middleware");
+const {
+  notFoundHandler,
+  errorHandler,
+} = require("./middleware/issue.js");
 const app = express();
 
 // 1. Parse request bodies and cookies
@@ -55,13 +59,19 @@ app.get("/debug/client-ip", (req, res) => {
 // 3. Authentication routes
 app.use("/api/auth/register", registerLimiter, registerRoutes);
 app.use("/api/auth/login", loginLimiter, loginRoutes);
-app.use("/api/csrf",generalLimiter, csrfRoutes);
+app.use("/api/csrf", generalLimiter, csrfRoutes);
 
 // 4. Protected notes API
-app.use("/api/notes", generalLimiter, authenticateToken, doubleCsrfProtection, notesRoutes);
+app.use(
+  "/api/notes",
+  generalLimiter,
+  authenticateToken,
+  doubleCsrfProtection,
+  notesRoutes,
+);
 
 // 5. Protected files API
-app.use("/api/files",generalLimiter, uploadLimiter, filesRoutes);
+app.use("/api/files", generalLimiter, uploadLimiter, filesRoutes);
 
 // 6. Protected users API
 app.use("/api/users", generalLimiter, usersRoutes);
@@ -76,7 +86,11 @@ app.get("/", (req, res) => {
 app.get("/health", (req, res) => {
   res.status(200).json({ status: "healthy" });
 });
+// Return a consistent response for unmatched routes.
+app.use(notFoundHandler);
 
+// Handle errors passed through next(error).
+app.use(errorHandler);
 // 6. Start server
 const PORT = process.env.PORT || 5000;
 

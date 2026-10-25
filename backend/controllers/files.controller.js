@@ -29,48 +29,76 @@ const ALLOWED_TYPES = {
   },
 };
 
+
 async function validateUploadedFile(file) {
   if (!file || !Buffer.isBuffer(file.buffer)) {
-    return { valid: false, message: "No valid file was uploaded." };
+    return {
+      valid: false,
+      message: "No valid file was uploaded.",
+    };
   }
 
   const ext = path.extname(file.originalname).toLowerCase();
   const config = ALLOWED_TYPES[ext];
 
   if (!config) {
-    return { valid: false, message: "File extension is not supported." };
+    return {
+      valid: false,
+      message: "File extension is not supported.",
+    };
   }
 
-  if (file.size <= 0 || file.size > config.maxSize) {
-    return { valid: false, message: "File size is outside the allowed limit." };
+  if (
+    !Number.isSafeInteger(file.size) ||
+    file.size <= 0 ||
+    file.size > config.maxSize ||
+    file.buffer.length !== file.size
+  ) {
+    return {
+      valid: false,
+      message: "File size is outside the allowed limit.",
+    };
   }
 
   if (file.mimetype !== config.mimeType) {
-    return { valid: false, message: "File MIME type does not match the extension." };
+    return {
+      valid: false,
+      message: "File MIME type does not match the extension.",
+    };
   }
 
-  const { fileTypeFromBuffer } = await import("file-type");
-  const detected = await fileTypeFromBuffer(file.buffer);
+  try {
+    const { fileTypeFromBuffer } = await import("file-type");
+    const detected = await fileTypeFromBuffer(file.buffer);
 
-  if (ext === ".pdf") {
-    // PDF signatures begin with %PDF-
-    const header = file.buffer.subarray(0, 1024).toString("latin1");
+    if (ext === ".pdf") {
+      // Require the PDF header at the beginning of the file.
+      const header = file.buffer
+        .subarray(0, 5)
+        .toString("ascii");
 
-    if (!header.includes("%PDF-")) {
-      return { valid: false, message: "The file is not a valid PDF." };
+      if (header !== "%PDF-") {
+        return {
+          valid: false,
+          message: "The file is not a valid PDF.",
+        };
+      }
+
+      // PDF signature validation is not a complete PDF security scan.
+    } else if (!detected || detected.mime !== config.detectedMime) {
+      return {
+        valid: false,
+        message: "The file contents do not match the supported format.",
+      };
     }
-  } else if (ext === ".mp3") {
-    if (!detected || detected.mime !== "audio/mpeg") {
-      return { valid: false, message: "The file is not a valid MP3." };
-    }
-  } else if (ext === ".wav") {
-    if (!detected || detected.mime !== "audio/wav") {
-      return { valid: false, message: "The file is not a valid WAV." };
-    }
-  } else if (ext === ".m4a") {
-    if (!detected || detected.mime !== "audio/mp4") {
-      return { valid: false, message: "The file is not a valid M4A audio file." };
-    }
+  } catch (error) {
+    // Do not silently accept files if signature detection fails.
+    console.error("File signature validation failed:", error.message);
+
+    return {
+      valid: false,
+      message: "Unable to validate the uploaded file.",
+    };
   }
 
   return {
@@ -80,6 +108,7 @@ async function validateUploadedFile(file) {
     maxSize: config.maxSize,
   };
 }
+
 
 // Upload limits
 const PDF_MAX_SIZE = 50 * 1024 * 1024;
@@ -96,26 +125,30 @@ const USER_QUOTA = 100 * 1024 * 1024;
 
 const upload = multer({
   storage: multer.memoryStorage(),
+
   limits: {
     fileSize: 50 * 1024 * 1024,
     files: 1,
     fields: 10,
     parts: 12,
   },
+
   fileFilter: (req, file, callback) => {
     const ext = path.extname(file.originalname).toLowerCase();
     const config = ALLOWED_TYPES[ext];
 
     if (!config) {
-      return callback(new Error("Unsupported file extension."));
+      return callback(
+        new Error("Unsupported file extension.")
+      );
     }
 
     if (file.mimetype !== config.mimeType) {
-      return callback(new Error("File MIME type does not match extension."));
+      return callback(
+        new Error("File MIME type does not match extension.")
+      );
     }
 
-    // Store the per-type maximum for validation after upload.
-    req.maxAllowedFileSize = config.maxSize;
     callback(null, true);
   },
 });
@@ -130,9 +163,11 @@ function validId(id) {
 }
 
 function handleUploadError(err, req, res, next) {
-  if (err instanceof multer.MulterError) {
-    console.error("Multer error:", err.code, err.message);
+  if (!err) {
+    return next();
+  }
 
+  if (err instanceof multer.MulterError) {
     const message =
       err.code === "LIMIT_FILE_SIZE"
         ? "File exceeds the maximum upload size."
@@ -147,16 +182,21 @@ function handleUploadError(err, req, res, next) {
     });
   }
 
-  if (err) {
-    console.error("Upload middleware error:", err.message);
-
+  if (err.message === "Unsupported file extension.") {
     return res.status(400).json({
       success: false,
-      message: err.message,
+      message: "File extension is not supported.",
     });
   }
 
-  return next();
+  if (err.message === "File MIME type does not match extension.") {
+    return res.status(400).json({
+      success: false,
+      message: "File MIME type does not match the extension.",
+    });
+  }
+
+  return next(err);
 }
 
 // POST /api/files

@@ -152,11 +152,16 @@ const updateMyProfile = async (req, res, next) => {
 };
 
 
+
 const changeMyPassword = async (req, res, next) => {
   try {
     const { currentPassword, newPassword } = req.body ?? {};
 
+    // 1. Validate the request
     if (
+      !req.body ||
+      typeof req.body !== "object" ||
+      Array.isArray(req.body) ||
       typeof currentPassword !== "string" ||
       typeof newPassword !== "string" ||
       !currentPassword ||
@@ -170,7 +175,8 @@ const changeMyPassword = async (req, res, next) => {
       });
     }
 
-    const result = await pool.query(
+    // 2. Retrieve the current password hash
+    const userResult = await pool.query(
       `SELECT password_hash
        FROM users
        WHERE user_id = $1
@@ -178,15 +184,16 @@ const changeMyPassword = async (req, res, next) => {
       [req.user.user_id]
     );
 
-    if (result.rowCount === 0) {
+    if (userResult.rowCount === 0) {
       return res.status(404).json({
         success: false,
         message: "User account not found.",
       });
     }
 
+    // 3. Verify the current password
     const passwordMatches = await argon2.verify(
-      result.rows[0].password_hash,
+      userResult.rows[0].password_hash,
       currentPassword
     );
 
@@ -197,6 +204,7 @@ const changeMyPassword = async (req, res, next) => {
       });
     }
 
+    // 4. Require a different password
     if (currentPassword === newPassword) {
       return res.status(400).json({
         success: false,
@@ -204,25 +212,38 @@ const changeMyPassword = async (req, res, next) => {
       });
     }
 
+    // 5. Hash the new password using Argon2id
     const passwordHash = await argon2.hash(newPassword, {
       type: argon2.argon2id,
     });
 
-    await pool.query(
+    // 6. Update the password and invalidate existing JWTs
+    const updateResult = await pool.query(
       `UPDATE users
-       SET password_hash = $1
-       WHERE user_id = $2`,
+       SET password_hash = $1,
+           token_version = token_version + 1
+       WHERE user_id = $2
+       RETURNING user_id`,
       [passwordHash, req.user.user_id]
     );
 
+    if (updateResult.rowCount !== 1) {
+      return res.status(404).json({
+        success: false,
+        message: "User account not found.",
+      });
+    }
+
+    // 7. Tell the user to authenticate again
     return res.status(200).json({
       success: true,
-      message: "Password changed successfully. Please log in again if required.",
+      message: "Password changed successfully. Please log in again.",
     });
   } catch (error) {
     return next(error);
   }
 };
+
 
 module.exports = {
   getMyProfile,

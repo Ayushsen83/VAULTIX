@@ -25,7 +25,7 @@ const loginUser = async (req, res, next) => {
 
     // 2. Find the user
     const result = await pool.query(
-      `SELECT user_id, name, email, password_hash
+      `SELECT user_id, name, email, password_hash, token_version
        FROM users
        WHERE email = $1
        LIMIT 1`,
@@ -53,7 +53,10 @@ const loginUser = async (req, res, next) => {
     }
 
     // 5. Generate JWT
-    const token = jwt.sign({}, jwtSecret, {
+    const token = jwt.sign({
+      ver: user.token_version,
+    }, 
+    jwtSecret, {
       algorithm: "HS256",
       subject: String(user.user_id),
       issuer: "vaultix-api",
