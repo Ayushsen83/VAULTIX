@@ -12,6 +12,12 @@ const { doubleCsrfProtection } = require("./middleware/csrf.middleware.js");
 const csrfRoutes = require("./routes/csrf.routes");
 const filesRoutes = require("./routes/files.routes");
 const usersRoutes = require("./routes/users.routes");
+const {
+  generalLimiter,
+  loginLimiter,
+  registerLimiter,
+  uploadLimiter,
+} = require("./middleware/rateLimit.middleware");
 const app = express();
 
 // 1. Parse request bodies and cookies
@@ -41,18 +47,18 @@ app.use(
 );
 
 // 3. Authentication routes
-app.use("/api/auth/register", registerRoutes);
-app.use("/api/auth/login", loginRoutes);
-app.use("/api/csrf", csrfRoutes);
+app.use("/api/auth/register", registerLimiter, registerRoutes);
+app.use("/api/auth/login", loginLimiter, loginRoutes);
+app.use("/api/csrf",generalLimiter, csrfRoutes);
 
 // 4. Protected notes API
-app.use("/api/notes", authenticateToken, doubleCsrfProtection, notesRoutes);
+app.use("/api/notes", generalLimiter, authenticateToken, doubleCsrfProtection, notesRoutes);
 
 // 5. Protected files API
-app.use("/api/files", filesRoutes);
+app.use("/api/files",generalLimiter, uploadLimiter, filesRoutes);
 
 // 6. Protected users API
-app.use("/api/users", usersRoutes);
+app.use("/api/users", generalLimiter, usersRoutes);
 
 // 7. Health endpoints
 app.get("/", (req, res) => {
