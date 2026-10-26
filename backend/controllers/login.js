@@ -99,7 +99,7 @@ const loginUser = async (req, res, next) => {
         subject: String(user.user_id),
         issuer: "vaultix-api",
         audience: "vaultix-client",
-        expiresIn: process.env.JWT_EXPIRES_IN || "15m",
+        expiresIn: process.env.JWT_EXPIRES_IN,
       }
     );
 
