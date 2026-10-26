@@ -22,6 +22,7 @@ const {
   notFoundHandler,
   errorHandler,
 } = require("./middleware/issue.js");
+const twoFactorRoutes = require("./routes/twoFactor.routes");
 const app = express();
 
 // 1. Parse request bodies and cookies
@@ -82,7 +83,13 @@ app.get("/", (req, res) => {
     message: "Secure Digital Locker API is running",
   });
 });
-
+// 8. Two-Factor Authentication endpoints
+app.use(
+  "/api/auth/2fa",
+  generalLimiter,
+  twoFactorRoutes
+);
+// 9. Health check endpoint
 app.get("/health", (req, res) => {
   res.status(200).json({ status: "healthy" });
 });
