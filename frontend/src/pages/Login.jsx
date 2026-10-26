@@ -5,7 +5,7 @@ import OtpInput from '../components/OtpInput';
 import './auth.css';
 
 // Set to true while backend 2FA endpoints are not yet implemented
-const BYPASS_2FA = true;
+const BYPASS_2FA = false;
 
 export default function Login() {
   const [formData, setFormData] = useState({ email: '', password: '' });
@@ -56,7 +56,7 @@ export default function Login() {
     setLoading(true);
 
     try {
-      await api.post('/auth/verify-totp', {
+      await api.post('/auth/2fa/verify-login', {
         email: formData.email.trim().toLowerCase(),
         code,
       });

@@ -62,7 +62,7 @@ export default function Register() {
       }
 
       // 3. Normal TOTP flow when endpoints exist
-      const qrRes = await api.post('/auth/setup-totp', {
+      const qrRes = await api.post('/auth/2fa/setup', {
         email: formData.email.trim().toLowerCase(),
       });
 
@@ -83,7 +83,7 @@ export default function Register() {
     setLoading(true);
 
     try {
-      await api.post('/auth/confirm-totp', {
+      await api.post('/auth/2fa/verify-setup', {
         email: formData.email.trim().toLowerCase(),
         code,
       });

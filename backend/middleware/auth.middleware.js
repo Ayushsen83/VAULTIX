@@ -23,16 +23,17 @@ const authenticateToken = async (req, res, next) => {
   }
 
   try {
-    // 3. Verify JWT signature and required claims
+    // 3. Verify JWT signature, algorithm, issuer, and audience
     const decoded = jwt.verify(token, secret, {
       algorithms: ["HS256"],
       issuer: "vaultix-api",
       audience: "vaultix-client",
     });
 
-    // 4. Validate JWT subject and token version
+    // 4. Validate JWT claims
     if (
       typeof decoded === "string" ||
+      decoded.purpose !== "access" ||
       typeof decoded.sub !== "string" ||
       !/^[1-9]\d*$/.test(decoded.sub) ||
       !Number.isSafeInteger(Number(decoded.sub)) ||
@@ -56,7 +57,10 @@ const authenticateToken = async (req, res, next) => {
 
     const user = result.rows[0];
 
-    if (!user || decoded.ver !== user.token_version) {
+    if (
+      !user ||
+      Number(decoded.ver) !== Number(user.token_version)
+    ) {
       return res.status(401).json({
         success: false,
         message: "Invalid or expired authentication token.",
@@ -81,7 +85,7 @@ const authenticateToken = async (req, res, next) => {
       });
     }
 
-    // Database and unexpected errors go to centralized error handling.
+    // Database and unexpected errors go to centralized error handling
     return next(error);
   }
 };
