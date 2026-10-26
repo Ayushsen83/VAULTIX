@@ -1,18 +1,27 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import api from '../services/api';
-import './Auth.css';
+import OtpInput from '../components/OtpInput';
+import './auth.css';
+
+// Set to true while backend 2FA routes are not yet implemented
+const BYPASS_2FA = true;
 
 export default function Register() {
   const [formData, setFormData] = useState({
     name: '',
     email: '',
-    password: '',
-    confirmPassword: '',
     phonenumber: '',
     age: '',
+    password: '',
+    confirmPassword: '',
   });
 
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [step, setStep] = useState('form'); // 'form' | 'scan-qr'
+  const [qrCodeUrl, setQrCodeUrl] = useState('');
+  const [otp, setOtp] = useState(['', '', '', '', '', '']);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
@@ -21,7 +30,7 @@ export default function Register() {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
-  const handleSubmit = async (e) => {
+  const handleRegisterSubmit = async (e) => {
     e.preventDefault();
     setError('');
 
@@ -37,138 +46,214 @@ export default function Register() {
     setLoading(true);
 
     try {
+      // 1. Create account on backend (Succeeds)
       await api.post('/auth/register', {
         name: formData.name.trim(),
         email: formData.email.trim().toLowerCase(),
-        password: formData.password,
         phonenumber: formData.phonenumber.trim(),
         age: ageNum,
+        password: formData.password,
+      });
+
+      // 2. Bypass missing 2FA endpoint during dev
+      if (BYPASS_2FA) {
+        navigate('/login');
+        return;
+      }
+
+      // 3. Normal TOTP flow when endpoints exist
+      const qrRes = await api.post('/auth/setup-totp', {
+        email: formData.email.trim().toLowerCase(),
+      });
+
+      setQrCodeUrl(qrRes.data.qrCodeUrl);
+      setStep('scan-qr');
+    } catch (err) {
+      setError(err.response?.data?.message || err.message || 'Registration failed');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleConfirmTotp = async (codeOverride) => {
+    const code = codeOverride || otp.join('');
+    if (code.length !== 6) return setError('Please enter a 6-digit code');
+
+    setError('');
+    setLoading(true);
+
+    try {
+      await api.post('/auth/confirm-totp', {
+        email: formData.email.trim().toLowerCase(),
+        code,
       });
 
       navigate('/login');
     } catch (err) {
-      setError(
-        err.response?.data?.message ||
-        err.response?.data?.error ||
-        err.message ||
-        'Registration failed. Please try again.'
-      );
+      setError(err.response?.data?.message || 'Invalid authenticator code');
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="auth-wrapper">
-      <div className="auth-card">
-        <div className="auth-header">
-          <div className="auth-logo">
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
-              <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
-            </svg>
+    <div className="qv-auth-page">
+      <div className="qv-card-light">
+        {/* Top-Right Decorative Dots */}
+        <div className="qv-dots-decoration"></div>
+
+        {/* Brand Header */}
+        <div className="qv-brand">
+          <div className="qv-brand-logo">V</div>
+          <div className="qv-brand-meta">
+            <h3>Vaultrix</h3>
+            <span>Your Digital Locker • By QuadraVault</span>
           </div>
-          <h2 className="auth-title">Create Account</h2>
-          <p className="auth-subtitle">Get started with your secure Vaultix storage</p>
         </div>
 
-        {error && <div className="auth-error">{error}</div>}
+        {step === 'form' ? (
+          <>
+            <h2 className="qv-title">Create Account</h2>
+            <p className="qv-subtitle">Join Vaultrix and keep your files safe.</p>
 
-        <form onSubmit={handleSubmit} className="auth-form">
-          <div className="input-field">
-            <label htmlFor="reg-name">Full Name</label>
-            <input
-              id="reg-name"
-              type="text"
-              name="name"
-              maxLength={100}
-              required
-              value={formData.name}
-              onChange={handleChange}
-              placeholder="John Doe"
+            {error && <div className="qv-error-alert">{error}</div>}
+
+            <form onSubmit={handleRegisterSubmit} className="qv-form">
+              <div className="qv-field">
+                <span className="qv-field-icon">👤</span>
+                <input
+                  type="text"
+                  name="name"
+                  className="qv-input"
+                  required
+                  placeholder="Full name"
+                  value={formData.name}
+                  onChange={handleChange}
+                />
+              </div>
+
+              <div className="qv-field">
+                <span className="qv-field-icon">✉️</span>
+                <input
+                  type="email"
+                  name="email"
+                  className="qv-input"
+                  required
+                  placeholder="Email address"
+                  value={formData.email}
+                  onChange={handleChange}
+                />
+              </div>
+
+              <div className="qv-input-row">
+                <div className="qv-field" style={{ flex: 2 }}>
+                  <span className="qv-field-icon">📞</span>
+                  <input
+                    type="tel"
+                    name="phonenumber"
+                    className="qv-input"
+                    required
+                    placeholder="Phone number"
+                    value={formData.phonenumber}
+                    onChange={handleChange}
+                  />
+                </div>
+                <div className="qv-field" style={{ flex: 1 }}>
+                  <input
+                    type="number"
+                    name="age"
+                    min="1"
+                    max="120"
+                    className="qv-input"
+                    required
+                    placeholder="Age"
+                    value={formData.age}
+                    onChange={handleChange}
+                    style={{ paddingLeft: '1rem' }}
+                  />
+                </div>
+              </div>
+
+              <div className="qv-field">
+                <span className="qv-field-icon">🔒</span>
+                <input
+                  type={showPassword ? 'text' : 'password'}
+                  name="password"
+                  className="qv-input"
+                  required
+                  placeholder="Password"
+                  value={formData.password}
+                  onChange={handleChange}
+                />
+                <button
+                  type="button"
+                  className="qv-field-toggle"
+                  onClick={() => setShowPassword(!showPassword)}
+                >
+                  {showPassword ? '🙈' : '👁️'}
+                </button>
+              </div>
+
+              <div className="qv-field">
+                <span className="qv-field-icon">🛡️</span>
+                <input
+                  type={showConfirmPassword ? 'text' : 'password'}
+                  name="confirmPassword"
+                  className="qv-input"
+                  required
+                  placeholder="Confirm password"
+                  value={formData.confirmPassword}
+                  onChange={handleChange}
+                />
+                <button
+                  type="button"
+                  className="qv-field-toggle"
+                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                >
+                  {showConfirmPassword ? '🙈' : '👁️'}
+                </button>
+              </div>
+
+              <button type="submit" disabled={loading} className="qv-btn-dark">
+                {loading ? 'Processing...' : 'Register'} <span>➔</span>
+              </button>
+            </form>
+
+            <p className="qv-footer">
+              Already have an account? <Link to="/login">Login</Link>
+            </p>
+          </>
+        ) : (
+          <div style={{ textAlign: 'center' }}>
+            <h2 className="qv-title">Set Up Authenticator</h2>
+            <p className="qv-subtitle">
+              Scan this QR code in <strong>Google Authenticator</strong>, then enter the 6-digit code.
+            </p>
+
+            {qrCodeUrl && (
+              <div className="qv-qr-wrapper">
+                <img src={qrCodeUrl} alt="Google Authenticator QR" style={{ width: '170px', height: '170px' }} />
+              </div>
+            )}
+
+            {error && <div className="qv-error-alert">{error}</div>}
+
+            <OtpInput
+              otp={otp}
+              setOtp={setOtp}
+              onComplete={(code) => handleConfirmTotp(code)}
+              disabled={loading}
             />
+
+            <button
+              onClick={() => handleConfirmTotp()}
+              disabled={loading || otp.join('').length < 6}
+              className="qv-btn-dark"
+            >
+              {loading ? 'Activating...' : 'Activate & Finish'} <span>➔</span>
+            </button>
           </div>
-
-          <div className="input-field">
-            <label htmlFor="reg-email">Email Address</label>
-            <input
-              id="reg-email"
-              type="email"
-              name="email"
-              maxLength={255}
-              required
-              value={formData.email}
-              onChange={handleChange}
-              placeholder="you@example.com"
-            />
-          </div>
-
-          <div className="form-row">
-            <div className="input-field" style={{ flex: 2 }}>
-              <label htmlFor="reg-phone">Phone Number</label>
-              <input
-                id="reg-phone"
-                type="tel"
-                name="phonenumber"
-                maxLength={20}
-                required
-                value={formData.phonenumber}
-                onChange={handleChange}
-                placeholder="+91 9876543210"
-              />
-            </div>
-
-            <div className="input-field" style={{ flex: 1 }}>
-              <label htmlFor="reg-age">Age</label>
-              <input
-                id="reg-age"
-                type="number"
-                name="age"
-                min="1"
-                max="120"
-                required
-                value={formData.age}
-                onChange={handleChange}
-                placeholder="21"
-              />
-            </div>
-          </div>
-
-          <div className="input-field">
-            <label htmlFor="reg-password">Password</label>
-            <input
-              id="reg-password"
-              type="password"
-              name="password"
-              required
-              value={formData.password}
-              onChange={handleChange}
-              placeholder="••••••••"
-            />
-          </div>
-
-          <div className="input-field">
-            <label htmlFor="reg-confirm">Confirm Password</label>
-            <input
-              id="reg-confirm"
-              type="password"
-              name="confirmPassword"
-              required
-              value={formData.confirmPassword}
-              onChange={handleChange}
-              placeholder="••••••••"
-            />
-          </div>
-
-          <button type="submit" disabled={loading} className="btn-submit">
-            {loading ? 'Creating Account...' : 'Create Account'}
-          </button>
-        </form>
-
-        <p className="auth-footer">
-          Already registered?
-          <Link to="/login" className="auth-link">Sign in here</Link>
-        </p>
+        )}
       </div>
     </div>
   );
