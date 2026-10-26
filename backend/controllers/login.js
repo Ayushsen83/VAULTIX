@@ -23,9 +23,15 @@ const loginUser = async (req, res, next) => {
 
     const normalizedEmail = email.trim().toLowerCase();
 
-    // 2. Find the user
+    // 2. Find user and check their 2FA status
     const result = await pool.query(
-      `SELECT user_id, name, email, password_hash
+      `SELECT
+         user_id,
+         name,
+         email,
+         password_hash,
+         token_version,
+         totp_enabled
        FROM users
        WHERE email = $1
        LIMIT 1`,
@@ -48,20 +54,56 @@ const loginUser = async (req, res, next) => {
     // 4. Validate JWT configuration
     const jwtSecret = process.env.JWT_SECRET;
 
-    if (!jwtSecret || Buffer.byteLength(jwtSecret, "utf8") < 32) {
+    if (
+      !jwtSecret ||
+      Buffer.byteLength(jwtSecret, "utf8") < 32
+    ) {
       throw new Error("JWT_SECRET is missing or too short.");
     }
 
-    // 5. Generate JWT
-    const token = jwt.sign({}, jwtSecret, {
-      algorithm: "HS256",
-      subject: String(user.user_id),
-      issuer: "vaultix-api",
-      audience: "vaultix-client",
-      expiresIn: process.env.JWT_EXPIRES_IN ,
-    });
+    // 5. If 2FA is enabled, issue a restricted login challenge.
+    // Do NOT issue the authenticated cookie yet.
+    if (user.totp_enabled) {
+      const challengeToken = jwt.sign(
+        {
+          ver: user.token_version,
+          purpose: "2fa_login",
+        },
+        jwtSecret,
+        {
+          algorithm: "HS256",
+          subject: String(user.user_id),
+          issuer: "vaultix-api",
+          audience: "vaultix-2fa-challenge",
+          expiresIn: "5m",
+        }
+      );
 
-    // 6. Store JWT in an HttpOnly cookie
+      return res.status(200).json({
+        success: true,
+        requiresTwoFactor: true,
+        challengeToken,
+        message: "Enter your Google Authenticator code.",
+      });
+    }
+
+    // 6. Normal login when 2FA is disabled
+    const token = jwt.sign(
+      {
+        ver: user.token_version,
+        purpose: "access",
+      },
+      jwtSecret,
+      {
+        algorithm: "HS256",
+        subject: String(user.user_id),
+        issuer: "vaultix-api",
+        audience: "vaultix-client",
+        expiresIn: process.env.JWT_EXPIRES_IN || "15m",
+      }
+    );
+
+    // 7. Store authenticated JWT in an HttpOnly cookie
     const isProduction = process.env.NODE_ENV === "production";
 
     res.cookie("vaultix_token", token, {
@@ -72,9 +114,10 @@ const loginUser = async (req, res, next) => {
       maxAge: 15 * 60 * 1000,
     });
 
-    // 7. Return safe user information, never the JWT
+    // 8. Return safe user information
     return res.status(200).json({
       success: true,
+      requiresTwoFactor: false,
       message: "Login successful.",
       user: {
         user_id: user.user_id,
