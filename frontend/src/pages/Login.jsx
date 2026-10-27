@@ -1,11 +1,8 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import api from '../services/api';
+import api, { refreshCsrfToken } from '../services/api';
 import OtpInput from '../components/OtpInput';
-import './auth.css';
-
-// Set to true while backend 2FA endpoints are not yet implemented
-const BYPASS_2FA = false;
+import './Auth.css';
 
 export default function Login() {
   const [formData, setFormData] = useState({ email: '', password: '' });
@@ -26,23 +23,27 @@ export default function Login() {
     setLoading(true);
 
     try {
+      // API CALL 4: Authenticate credentials
       const res = await api.post('/auth/login', {
         email: formData.email.trim().toLowerCase(),
         password: formData.password,
       });
 
-      // Bypass 2FA step during development
-      if (BYPASS_2FA) {
-        navigate('/home');
-        return;
-      }
+      // Prepare fresh CSRF token for the 2FA challenge request
+      await refreshCsrfToken();
 
-      // Normal flow once backend TOTP routes are ready
+      // If user requires 2FA or backend signals 2FA challenge
       if (res.data?.require2FA || res.status === 200) {
         setStep('totp');
+      } else {
+        navigate('/home');
       }
     } catch (err) {
-      setError(err.response?.data?.message || 'Invalid email or password');
+      setError(
+        err.response?.data?.message ||
+        err.response?.data?.error ||
+        'Invalid email or password'
+      );
     } finally {
       setLoading(false);
     }
@@ -56,14 +57,23 @@ export default function Login() {
     setLoading(true);
 
     try {
+      // API CALL 5: Verify 2FA challenge code
       await api.post('/auth/2fa/verify-login', {
         email: formData.email.trim().toLowerCase(),
         code,
       });
 
+      // Clean up session CSRF token
+      sessionStorage.removeItem('csrf_token');
+
+      // Navigate to Dashboard
       navigate('/home');
     } catch (err) {
-      setError(err.response?.data?.message || 'Invalid authenticator code');
+      setError(
+        err.response?.data?.message ||
+        err.response?.data?.error ||
+        'Invalid authenticator code. Check your Google Authenticator and retry.'
+      );
     } finally {
       setLoading(false);
     }
