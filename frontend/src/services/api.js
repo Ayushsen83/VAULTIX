@@ -50,6 +50,7 @@ export const fetchFreshCsrfToken = async (customHeaders = {}) => {
   return null;
 };
 
+
 // Alias export to satisfy Login.jsx without breaking Register.jsx
 export const refreshCsrfToken = fetchFreshCsrfToken;
 

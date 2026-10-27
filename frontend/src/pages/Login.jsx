@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import api, { refreshCsrfToken } from '../services/api';
 import OtpInput from '../components/OtpInput';
-import './Auth.css';
+import './uth.css';
 
 export default function Login() {
   const [formData, setFormData] = useState({ email: '', password: '' });
@@ -16,7 +16,6 @@ export default function Login() {
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
-
   const handlePasswordSubmit = async (e) => {
     e.preventDefault();
     setError('');

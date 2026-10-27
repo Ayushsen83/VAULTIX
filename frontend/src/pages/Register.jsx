@@ -148,6 +148,7 @@ export default function Register() {
     }
   };
 
+  
   return (
     <div className="qv-auth-page">
       <div className="qv-card-light">
