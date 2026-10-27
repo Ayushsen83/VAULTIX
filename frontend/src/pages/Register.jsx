@@ -1,11 +1,8 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import api from '../services/api';
+import api, { fetchFreshCsrfToken } from '../services/api';
 import OtpInput from '../components/OtpInput';
-import './auth.css';
-
-// Set to true while backend 2FA routes are not yet implemented
-const BYPASS_2FA = true;
+import './Auth.css';
 
 export default function Register() {
   const [formData, setFormData] = useState({
@@ -46,8 +43,8 @@ export default function Register() {
     setLoading(true);
 
     try {
-      // 1. Create account on backend (Succeeds)
-      await api.post('/auth/register', {
+      // 1. API CALL 1: Register User
+      const regRes = await api.post('/auth/register', {
         name: formData.name.trim(),
         email: formData.email.trim().toLowerCase(),
         phonenumber: formData.phonenumber.trim(),
@@ -55,21 +52,52 @@ export default function Register() {
         password: formData.password,
       });
 
-      // 2. Bypass missing 2FA endpoint during dev
-      if (BYPASS_2FA) {
-        navigate('/login');
-        return;
+      // 2. Extract temporary token (if returned in JSON response body)
+      const tempToken =
+        regRes.data?.tempToken ||
+        regRes.data?.token ||
+        regRes.data?.accessToken;
+
+      if (tempToken) {
+        sessionStorage.setItem('temp_jwt', tempToken);
       }
 
-      // 3. Normal TOTP flow when endpoints exist
-      const qrRes = await api.post('/auth/2fa/setup', {
-        email: formData.email.trim().toLowerCase(),
-      });
+      const authHeader = tempToken ? { Authorization: `Bearer ${tempToken}` } : {};
 
-      setQrCodeUrl(qrRes.data.qrCodeUrl);
+      // 3. API CALL 2: Fetch CSRF token using the temporary session
+      const csrf = await fetchFreshCsrfToken(authHeader);
+
+      // 4. API CALL 3: Call 2FA Setup to generate and retrieve QR Code
+      const setupHeaders = { ...authHeader };
+      if (csrf) {
+        setupHeaders['x-csrf-token'] = csrf;
+        setupHeaders['x-xsrf-token'] = csrf;
+      }
+
+      const qrRes = await api.post(
+        '/auth/2fa/setup',
+        { email: formData.email.trim().toLowerCase() },
+        { headers: setupHeaders }
+      );
+
+      const qr =
+        qrRes.data?.qrCodeUrl ||
+        qrRes.data?.qrCode ||
+        qrRes.data?.qr;
+
+      if (!qr) {
+        throw new Error('QR Code image was not returned by the backend.');
+      }
+
+      setQrCodeUrl(qr);
       setStep('scan-qr');
     } catch (err) {
-      setError(err.response?.data?.message || err.message || 'Registration failed');
+      setError(
+        err.response?.data?.message ||
+        err.response?.data?.error ||
+        err.message ||
+        'Registration failed'
+      );
     } finally {
       setLoading(false);
     }
@@ -83,14 +111,38 @@ export default function Register() {
     setLoading(true);
 
     try {
-      await api.post('/auth/2fa/verify-setup', {
-        email: formData.email.trim().toLowerCase(),
-        code,
-      });
+      const tempToken = sessionStorage.getItem('temp_jwt');
+      const csrf = sessionStorage.getItem('csrf_token');
 
+      const headers = {};
+      if (tempToken) headers.Authorization = `Bearer ${tempToken}`;
+      if (csrf) {
+        headers['x-csrf-token'] = csrf;
+        headers['x-xsrf-token'] = csrf;
+      }
+
+      // 5. API CALL 4: Verify OTP code and enable 2FA on the account
+      await api.post(
+        '/auth/2fa/verify-setup',
+        {
+          email: formData.email.trim().toLowerCase(),
+          code,
+        },
+        { headers }
+      );
+
+      // Cleanup temporary registration tokens
+      sessionStorage.removeItem('temp_jwt');
+      sessionStorage.removeItem('csrf_token');
+
+      // 6. Redirect to Login
       navigate('/login');
     } catch (err) {
-      setError(err.response?.data?.message || 'Invalid authenticator code');
+      setError(
+        err.response?.data?.message ||
+        err.response?.data?.error ||
+        'Invalid code. Please check your Google Authenticator app and retry.'
+      );
     } finally {
       setLoading(false);
     }
@@ -99,10 +151,8 @@ export default function Register() {
   return (
     <div className="qv-auth-page">
       <div className="qv-card-light">
-        {/* Top-Right Decorative Dots */}
         <div className="qv-dots-decoration"></div>
 
-        {/* Brand Header */}
         <div className="qv-brand">
           <div className="qv-brand-logo">V</div>
           <div className="qv-brand-meta">
@@ -232,7 +282,11 @@ export default function Register() {
 
             {qrCodeUrl && (
               <div className="qv-qr-wrapper">
-                <img src={qrCodeUrl} alt="Google Authenticator QR" style={{ width: '170px', height: '170px' }} />
+                <img
+                  src={qrCodeUrl}
+                  alt="Google Authenticator QR Code"
+                  style={{ width: '170px', height: '170px', display: 'block', margin: '0 auto' }}
+                />
               </div>
             )}
 
