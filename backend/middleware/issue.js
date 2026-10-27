@@ -11,7 +11,7 @@ function errorHandler(err, req, res, next) {
   if (res.headersSent) {
     return next(err);
   }
-
+  console.error("Error stack trace:", err.stack || err);
   // Log details on the server, not in the API response.
   console.error("API error:", {
     method: req.method,
@@ -36,7 +36,7 @@ function errorHandler(err, req, res, next) {
     statusCode >= 500
       ? "An unexpected server error occurred."
       : err.publicMessage || err.message || "Request failed.";
-
+    
   return res.status(statusCode).json({
     success: false,
     message,
