@@ -23,6 +23,9 @@ const {
   errorHandler,
 } = require("./middleware/issue.js");
 const twoFactorRoutes = require("./routes/twoFactor.routes");
+const {
+  verifyTwoFactorLogin,
+} = require("./controllers/twoFactor.controller");
 const app = express();
 
 // 1. Parse request bodies and cookies
@@ -84,11 +87,22 @@ app.get("/", (req, res) => {
   });
 });
 // 8. Two-Factor Authentication endpoints
+
+// Login-time 2FA verification.
+// This endpoint does not require an existing authentication cookie.
+app.post(
+  "/api/auth/2fa/verify-login",
+  loginLimiter,
+  verifyTwoFactorLogin
+);
+
+// Account-settings 2FA routes remain protected.
 app.use(
   "/api/auth/2fa",
   generalLimiter,
   twoFactorRoutes
 );
+
 // 9. Health check endpoint
 app.get("/health", (req, res) => {
   res.status(200).json({ status: "healthy" });

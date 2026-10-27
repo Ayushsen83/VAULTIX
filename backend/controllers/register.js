@@ -1,10 +1,11 @@
 
 const argon2 = require("argon2");
+const jwt = require("jsonwebtoken");
 const pool = require("../db");
 
 const registerUser = async (req, res, next) => {
   try {
-    const { name, email, password, phonenumber, age } = req.body;
+    const { name, email, password, phonenumber, age } = req.body ?? {};
 
     // 1. Validate required fields
     if (
@@ -87,17 +88,14 @@ const registerUser = async (req, res, next) => {
       }
     }
 
-    // 6. Check whether the email already exists
-    const existingUser = await pool.query(
-      "SELECT user_id FROM users WHERE email = $1 LIMIT 1",
-      [normalizedEmail]
-    );
-    console.log("Existing user check result:", existingUser.rows);
-    if (existingUser.rows.length > 0) {
-      return res.status(409).json({
-        success: false,
-        message: "An account with this email already exists.",
-      });
+    // 6. Validate JWT configuration before creating the account
+    const jwtSecret = process.env.JWT_SECRET;
+
+    if (
+      !jwtSecret ||
+      Buffer.byteLength(jwtSecret, "utf8") < 32
+    ) {
+      throw new Error("JWT_SECRET is missing or too short.");
     }
 
     // 7. Hash password using Argon2id
@@ -105,11 +103,22 @@ const registerUser = async (req, res, next) => {
       type: argon2.argon2id,
     });
 
-    // 8. Create the user in PostgreSQL
+    // 8. Create a pending account.
+    // A unique constraint on users.email is still required.
     const result = await pool.query(
-      `INSERT INTO users
-        (name, email, password_hash, phonenumber, age)
-       VALUES ($1, $2, $3, $4, $5)
+      `INSERT INTO users (
+         name,
+         email,
+         password_hash,
+         phonenumber,
+         age,
+         totp_enabled,
+         totp_secret_encrypted,
+         totp_pending_secret_encrypted,
+         registration_status
+       )
+       VALUES ($1, $2, $3, $4, $5, FALSE, NULL, NULL, 'pending')
+       ON CONFLICT (email) DO NOTHING
        RETURNING user_id, name, email, phonenumber, age, created_at`,
       [
         normalizedName,
@@ -120,21 +129,51 @@ const registerUser = async (req, res, next) => {
       ]
     );
 
-    // 9. Return safe user data (never return the password hash)
+    if (result.rowCount !== 1) {
+      return res.status(409).json({
+        success: false,
+        message: "An account with this email already exists.",
+      });
+    }
+
+    const user = result.rows[0];
+
+    // 9. Generate a short-lived registration challenge.
+    // This token is NOT an authenticated access token.
+    const registrationToken = jwt.sign(
+      {
+        purpose: "registration_2fa",
+      },
+      jwtSecret,
+      {
+        algorithm: "HS256",
+        subject: String(user.user_id),
+        issuer: "vaultix-api",
+        audience: "vaultix-registration",
+        expiresIn: "10m",
+      }
+    );
+
+    // 10. Return safe user data and registration challenge.
+    // The frontend uses the challenge to request the QR code.
     return res.status(201).json({
       success: true,
-      message: "Registration successful.",
-      user: result.rows[0],
-    });  } catch (error) {
-    // Handle concurrent attempts to register the same email
+      registrationPending: true,
+      requiresTwoFactorSetup: true,
+      message: "Account created. Complete two-factor authentication setup.",
+      registrationToken,
+      user,
+    });
+  } catch (error) {
     if (error.code === "23505") {
       return res.status(409).json({
         success: false,
         message: "An account with this email already exists.",
       });
     }
-    console.error("Registration error:", error);
-    next(error);
+
+    console.error("Registration error:", error.message);
+    return next(error);
   }
 };
 

@@ -1,111 +1,170 @@
-import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import api, { refreshCsrfToken } from '../services/api';
-import OtpInput from '../components/OtpInput';
-import './uth.css';
+
+import React, { useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import api from "../services/api";
+import OtpInput from "../components/OtpInput";
+import "./Auth.css";
 
 export default function Login() {
-  const [formData, setFormData] = useState({ email: '', password: '' });
+  const [formData, setFormData] = useState({
+    email: "",
+    password: "",
+  });
+
   const [showPassword, setShowPassword] = useState(false);
-  const [step, setStep] = useState('credentials'); // 'credentials' | 'totp'
-  const [otp, setOtp] = useState(['', '', '', '', '', '']);
-  const [error, setError] = useState('');
+  const [step, setStep] = useState("credentials");
+  const [challengeToken, setChallengeToken] = useState("");
+  const [otp, setOtp] = useState(["", "", "", "", "", ""]);
+  const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+
   const navigate = useNavigate();
 
   const handleChange = (e) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
+    setFormData((previous) => ({
+      ...previous,
+      [e.target.name]: e.target.value,
+    }));
   };
+
+  // STEP 1: Authenticate using email and password.
   const handlePasswordSubmit = async (e) => {
     e.preventDefault();
-    setError('');
+    setError("");
     setLoading(true);
 
     try {
-      // API CALL 4: Authenticate credentials
-      const res = await api.post('/auth/login', {
+      const res = await api.post("/auth/login", {
         email: formData.email.trim().toLowerCase(),
         password: formData.password,
       });
 
-      // Prepare fresh CSRF token for the 2FA challenge request
-      await refreshCsrfToken();
+      // If 2FA is enabled, the backend returns a restricted challenge.
+      if (res.data?.requiresTwoFactor === true) {
+        const temporaryChallenge = res.data?.challengeToken;
 
-      // If user requires 2FA or backend signals 2FA challenge
-      if (res.data?.require2FA || res.status === 200) {
-        setStep('totp');
-      } else {
-        navigate('/home');
+        if (
+          typeof temporaryChallenge !== "string" ||
+          !temporaryChallenge
+        ) {
+          throw new Error("The server did not return a 2FA challenge.");
+        }
+
+        setChallengeToken(temporaryChallenge);
+        setOtp(["", "", "", "", "", ""]);
+        setStep("totp");
+        return;
       }
+
+      // If 2FA is not enabled, the backend should already have set
+      // the authenticated HttpOnly cookie.
+      if (res.data?.success === true) {
+        navigate("/home", { replace: true });
+        return;
+      }
+
+      throw new Error("Login could not be completed.");
     } catch (err) {
       setError(
         err.response?.data?.message ||
-        err.response?.data?.error ||
-        'Invalid email or password'
+          err.response?.data?.error ||
+          err.message ||
+          "Unable to log in. Please try again."
       );
     } finally {
       setLoading(false);
     }
   };
 
+  // STEP 2: Verify the authenticator code using the challenge token.
   const handleTotpSubmit = async (codeOverride) => {
-    const code = codeOverride || otp.join('');
-    if (code.length !== 6) return setError('Enter the complete 6-digit code');
+    const code = String(codeOverride || otp.join(""));
 
-    setError('');
+    if (!/^\d{6}$/.test(code)) {
+      setError("Enter the complete 6-digit authenticator code.");
+      return;
+    }
+
+    if (!challengeToken) {
+      setError("Your login challenge has expired. Please log in again.");
+      setStep("credentials");
+      return;
+    }
+
+    setError("");
     setLoading(true);
 
     try {
-      // API CALL 5: Verify 2FA challenge code
-      await api.post('/auth/2fa/verify-login', {
-        email: formData.email.trim().toLowerCase(),
-        code,
+      const res = await api.post("/auth/2fa/verify-login", {
+         challengeToken,
+        token: code,
       });
 
-      // Clean up session CSRF token
-      sessionStorage.removeItem('csrf_token');
+      if (res.data?.success !== true) {
+        throw new Error("Two-factor verification failed.");
+      }
 
-      // Navigate to Dashboard
-      navigate('/home');
+      // The backend must set the authenticated HttpOnly cookie.
+      setChallengeToken("");
+      setOtp(["", "", "", "", "", ""]);
+
+      navigate("/home", { replace: true });
     } catch (err) {
       setError(
         err.response?.data?.message ||
-        err.response?.data?.error ||
-        'Invalid authenticator code. Check your Google Authenticator and retry.'
+          err.response?.data?.error ||
+          err.message ||
+          "Invalid authenticator code. Please try again."
       );
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleBackToLogin = () => {
+    setStep("credentials");
+    setChallengeToken("");
+    setOtp(["", "", "", "", "", ""]);
+    setError("");
   };
 
   return (
     <div className="qv-auth-page">
       <div className="qv-card-dark">
-        {/* Brand Header */}
         <div className="qv-brand">
           <div className="qv-brand-logo">V</div>
+
           <div className="qv-brand-meta">
             <h3>Vaultrix</h3>
             <span>Your Digital Locker • By QuadraVault</span>
           </div>
         </div>
 
-        {step === 'credentials' ? (
+        {step === "credentials" ? (
           <>
             <h2 className="qv-title">Welcome Back!</h2>
-            <p className="qv-subtitle">Login to access your locker.</p>
+            <p className="qv-subtitle">
+              Login to access your locker.
+            </p>
 
-            {error && <div className="qv-error-alert">{error}</div>}
+            {error && (
+              <div className="qv-error-alert" role="alert">
+                {error}
+              </div>
+            )}
 
             <form onSubmit={handlePasswordSubmit} className="qv-form">
               <div className="qv-field">
                 <span className="qv-field-icon">✉️</span>
+
                 <input
                   type="email"
                   name="email"
                   className="qv-input"
                   required
+                  maxLength={255}
                   placeholder="Email address"
+                  autoComplete="email"
                   value={formData.email}
                   onChange={handleChange}
                 />
@@ -113,21 +172,28 @@ export default function Login() {
 
               <div className="qv-field">
                 <span className="qv-field-icon">🔒</span>
+
                 <input
-                  type={showPassword ? 'text' : 'password'}
+                  type={showPassword ? "text" : "password"}
                   name="password"
                   className="qv-input"
                   required
+                  maxLength={128}
                   placeholder="Password"
+                  autoComplete="current-password"
                   value={formData.password}
                   onChange={handleChange}
                 />
+
                 <button
                   type="button"
                   className="qv-field-toggle"
-                  onClick={() => setShowPassword(!showPassword)}
+                  aria-label={showPassword ? "Hide password" : "Show password"}
+                  onClick={() =>
+                    setShowPassword((previous) => !previous)
+                  }
                 >
-                  {showPassword ? '🙈' : '👁️'}
+                  {showPassword ? "🙈" : "👁️"}
                 </button>
               </div>
 
@@ -136,11 +202,19 @@ export default function Login() {
                   <input type="checkbox" />
                   Remember me
                 </label>
-                <a href="#forgot" className="qv-forgot-link">Forgot password?</a>
+
+                <Link to="/forgot-password" className="qv-forgot-link">
+                  Forgot password?
+                </Link>
               </div>
 
-              <button type="submit" disabled={loading} className="qv-btn-orange">
-                {loading ? 'Checking...' : 'Login'} <span>➔</span>
+              <button
+                type="submit"
+                disabled={loading}
+                className="qv-btn-orange"
+              >
+                {loading ? "Checking..." : "Login"}
+                <span>➔</span>
               </button>
             </form>
 
@@ -149,35 +223,48 @@ export default function Login() {
             </p>
           </>
         ) : (
-          <div style={{ textAlign: 'center' }}>
-            <h2 className="qv-title">Two-Factor Auth</h2>
-            <p className="qv-subtitle">Enter the 6-digit code from Google Authenticator.</p>
+          <div style={{ textAlign: "center" }}>
+            <h2 className="qv-title">Two-Factor Authentication</h2>
 
-            {error && <div className="qv-error-alert">{error}</div>}
+            <p className="qv-subtitle">
+              Enter the six-digit code from Google Authenticator.
+            </p>
+
+            {error && (
+              <div className="qv-error-alert" role="alert">
+                {error}
+              </div>
+            )}
 
             <OtpInput
               otp={otp}
               setOtp={setOtp}
-              onComplete={(code) => handleTotpSubmit(code)}
+              onComplete={handleTotpSubmit}
               disabled={loading}
             />
 
             <button
+              type="button"
               onClick={() => handleTotpSubmit()}
-              disabled={loading || otp.join('').length < 6}
+              disabled={loading || otp.join("").length !== 6}
               className="qv-btn-orange"
             >
-              {loading ? 'Verifying...' : 'Verify'} <span>➔</span>
+              {loading ? "Verifying..." : "Verify"}
+              <span>➔</span>
             </button>
 
             <p className="qv-footer">
               <button
                 type="button"
-                onClick={() => {
-                  setStep('credentials');
-                  setOtp(['', '', '', '', '', '']);
+                onClick={handleBackToLogin}
+                disabled={loading}
+                style={{
+                  background: "none",
+                  border: "none",
+                  color: "#e28766",
+                  cursor: "pointer",
+                  fontSize: "0.82rem",
                 }}
-                style={{ background: 'none', border: 'none', color: '#e28766', cursor: 'pointer', fontSize: '0.82rem' }}
               >
                 ← Back to Login
               </button>

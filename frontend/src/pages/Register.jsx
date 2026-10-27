@@ -1,50 +1,67 @@
-import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import api, { fetchFreshCsrfToken } from '../services/api';
-import OtpInput from '../components/OtpInput';
-import './Auth.css';
+import React, { useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import api from "../services/api";
+import OtpInput from "../components/OtpInput";
+import "./Auth.css";
 
 export default function Register() {
   const [formData, setFormData] = useState({
-    name: '',
-    email: '',
-    phonenumber: '',
-    age: '',
-    password: '',
-    confirmPassword: '',
+    name: "",
+    email: "",
+    phonenumber: "",
+    age: "",
+    password: "",
+    confirmPassword: "",
   });
 
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  const [step, setStep] = useState('form'); // 'form' | 'scan-qr'
-  const [qrCodeUrl, setQrCodeUrl] = useState('');
-  const [otp, setOtp] = useState(['', '', '', '', '', '']);
-  const [error, setError] = useState('');
+  const [step, setStep] = useState("form");
+  const [qrCodeUrl, setQrCodeUrl] = useState("");
+  const [manualSetupKey, setManualSetupKey] = useState("");
+  const [otp, setOtp] = useState(["", "", "", "", "", ""]);
+  const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+
   const navigate = useNavigate();
 
   const handleChange = (e) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
+    setFormData((previous) => ({
+      ...previous,
+      [e.target.name]: e.target.value,
+    }));
   };
 
+  // STEP 1: Register and automatically request the QR code.
   const handleRegisterSubmit = async (e) => {
     e.preventDefault();
-    setError('');
+    setError("");
 
     if (formData.password !== formData.confirmPassword) {
-      return setError('Passwords do not match');
+      setError("Passwords do not match.");
+      return;
     }
 
-    const ageNum = parseInt(formData.age, 10);
-    if (isNaN(ageNum) || ageNum < 1 || ageNum > 120) {
-      return setError('Age must be between 1 and 120');
+    const ageNum = Number(formData.age);
+
+    if (!Number.isInteger(ageNum) || ageNum < 1 || ageNum > 120) {
+      setError("Age must be an integer between 1 and 120.");
+      return;
+    }
+
+    if (formData.password.length < 12 || formData.password.length > 128) {
+      setError("Password must be between 12 and 128 characters.");
+      return;
     }
 
     setLoading(true);
 
     try {
-      // 1. API CALL 1: Register User
-      const regRes = await api.post('/auth/register', {
+      // Remove any previous incomplete registration challenge.
+      sessionStorage.removeItem("registration_token");
+
+      // 1. Create a pending account.
+      const regRes = await api.post("/auth/register", {
         name: formData.name.trim(),
         email: formData.email.trim().toLowerCase(),
         phonenumber: formData.phonenumber.trim(),
@@ -52,132 +69,155 @@ export default function Register() {
         password: formData.password,
       });
 
-      // 2. Extract temporary token (if returned in JSON response body)
-      const tempToken =
-        regRes.data?.tempToken ||
-        regRes.data?.token ||
-        regRes.data?.accessToken;
+      const registrationToken = regRes.data?.registrationToken;
 
-      if (tempToken) {
-        sessionStorage.setItem('temp_jwt', tempToken);
+      if (
+        typeof registrationToken !== "string" ||
+        !registrationToken
+      ) {
+        throw new Error(
+          "Registration challenge token was not returned by the server."
+        );
       }
 
-      const authHeader = tempToken ? { Authorization: `Bearer ${tempToken}` } : {};
+      // 2. Save the short-lived registration challenge.
+      sessionStorage.setItem("registration_token", registrationToken);
 
-      // 3. API CALL 2: Fetch CSRF token using the temporary session
-      const csrf = await fetchFreshCsrfToken(authHeader);
-
-      // 4. API CALL 3: Call 2FA Setup to generate and retrieve QR Code
-      const setupHeaders = { ...authHeader };
-      if (csrf) {
-        setupHeaders['x-csrf-token'] = csrf;
-        setupHeaders['x-xsrf-token'] = csrf;
-      }
-
-      const qrRes = await api.post(
-        '/auth/2fa/setup',
-        { email: formData.email.trim().toLowerCase() },
-        { headers: setupHeaders }
-      );
+      // 3. Generate the registration-specific QR code.
+      // Do not call the existing-account /auth/2fa/setup endpoint.
+      const qrRes = await api.post("/auth/register/2fa/setup", {
+        registrationToken,
+      });
 
       const qr =
-        qrRes.data?.qrCodeUrl ||
         qrRes.data?.qrCode ||
+        qrRes.data?.qrCodeUrl ||
         qrRes.data?.qr;
 
-      if (!qr) {
-        throw new Error('QR Code image was not returned by the backend.');
+      if (typeof qr !== "string" || !qr) {
+        throw new Error("The server did not return a QR code.");
       }
 
       setQrCodeUrl(qr);
-      setStep('scan-qr');
+      setManualSetupKey(qrRes.data?.manualSetupKey || "");
+      setOtp(["", "", "", "", "", ""]);
+      setStep("scan-qr");
     } catch (err) {
       setError(
         err.response?.data?.message ||
-        err.response?.data?.error ||
-        err.message ||
-        'Registration failed'
+          err.response?.data?.error ||
+          err.message ||
+          "Registration failed. Please try again."
       );
     } finally {
       setLoading(false);
     }
   };
 
+  // STEP 2: Verify the OTP, activate the account, and continue to dashboard.
   const handleConfirmTotp = async (codeOverride) => {
-    const code = codeOverride || otp.join('');
-    if (code.length !== 6) return setError('Please enter a 6-digit code');
+    const code = String(codeOverride || otp.join(""));
 
-    setError('');
+    if (!/^\d{6}$/.test(code)) {
+      setError("Please enter a valid 6-digit authenticator code.");
+      return;
+    }
+
+    setError("");
     setLoading(true);
 
     try {
-      const tempToken = sessionStorage.getItem('temp_jwt');
-      const csrf = sessionStorage.getItem('csrf_token');
-
-      const headers = {};
-      if (tempToken) headers.Authorization = `Bearer ${tempToken}`;
-      if (csrf) {
-        headers['x-csrf-token'] = csrf;
-        headers['x-xsrf-token'] = csrf;
-      }
-
-      // 5. API CALL 4: Verify OTP code and enable 2FA on the account
-      await api.post(
-        '/auth/2fa/verify-setup',
-        {
-          email: formData.email.trim().toLowerCase(),
-          code,
-        },
-        { headers }
+      const registrationToken = sessionStorage.getItem(
+        "registration_token"
       );
 
-      // Cleanup temporary registration tokens
-      sessionStorage.removeItem('temp_jwt');
-      sessionStorage.removeItem('csrf_token');
+      if (!registrationToken) {
+        throw new Error(
+          "Your registration session has expired. Please register again."
+        );
+      }
 
-      // 6. Redirect to Login
-      navigate('/login');
+      // This endpoint must verify the OTP, activate the account,
+      // and set the authenticated vaultix_token HttpOnly cookie.
+      const verifyRes = await api.post("/auth/register/2fa/verify", {
+        registrationToken,
+        token: code,
+      });
+
+      if (verifyRes.data?.registrationComplete !== true) {
+        throw new Error(
+          "Registration could not be completed. Please try again."
+        );
+      }
+
+      // Remove temporary registration credentials.
+      sessionStorage.removeItem("registration_token");
+      sessionStorage.removeItem("csrf_token");
+
+      // Clear sensitive form values.
+      setFormData({
+        name: "",
+        email: "",
+        phonenumber: "",
+        age: "",
+        password: "",
+        confirmPassword: "",
+      });
+
+      // Account should now be authenticated through the HttpOnly cookie.
+      navigate("/dashboard", { replace: true });
     } catch (err) {
       setError(
         err.response?.data?.message ||
-        err.response?.data?.error ||
-        'Invalid code. Please check your Google Authenticator app and retry.'
+          err.response?.data?.error ||
+          err.message ||
+          "OTP verification failed. Check your authenticator code."
       );
     } finally {
       setLoading(false);
     }
   };
 
-  
   return (
     <div className="qv-auth-page">
       <div className="qv-card-light">
-        <div className="qv-dots-decoration"></div>
+        <div className="qv-dots-decoration" />
 
         <div className="qv-brand">
           <div className="qv-brand-logo">V</div>
+
           <div className="qv-brand-meta">
             <h3>Vaultrix</h3>
             <span>Your Digital Locker • By QuadraVault</span>
           </div>
         </div>
 
-        {step === 'form' ? (
+        {step === "form" ? (
           <>
             <h2 className="qv-title">Create Account</h2>
-            <p className="qv-subtitle">Join Vaultrix and keep your files safe.</p>
 
-            {error && <div className="qv-error-alert">{error}</div>}
+            <p className="qv-subtitle">
+              Join Vaultrix and keep your files safe.
+            </p>
+
+            {error && (
+              <div className="qv-error-alert" role="alert">
+                {error}
+              </div>
+            )}
 
             <form onSubmit={handleRegisterSubmit} className="qv-form">
               <div className="qv-field">
                 <span className="qv-field-icon">👤</span>
+
                 <input
                   type="text"
                   name="name"
                   className="qv-input"
                   required
+                  maxLength={100}
                   placeholder="Full name"
+                  autoComplete="name"
                   value={formData.name}
                   onChange={handleChange}
                 />
@@ -185,12 +225,15 @@ export default function Register() {
 
               <div className="qv-field">
                 <span className="qv-field-icon">✉️</span>
+
                 <input
                   type="email"
                   name="email"
                   className="qv-input"
                   required
+                  maxLength={255}
                   placeholder="Email address"
+                  autoComplete="email"
                   value={formData.email}
                   onChange={handleChange}
                 />
@@ -199,74 +242,102 @@ export default function Register() {
               <div className="qv-input-row">
                 <div className="qv-field" style={{ flex: 2 }}>
                   <span className="qv-field-icon">📞</span>
+
                   <input
                     type="tel"
                     name="phonenumber"
                     className="qv-input"
                     required
+                    maxLength={20}
                     placeholder="Phone number"
+                    autoComplete="tel"
                     value={formData.phonenumber}
                     onChange={handleChange}
                   />
                 </div>
+
                 <div className="qv-field" style={{ flex: 1 }}>
                   <input
                     type="number"
                     name="age"
                     min="1"
                     max="120"
+                    step="1"
                     className="qv-input"
                     required
                     placeholder="Age"
                     value={formData.age}
                     onChange={handleChange}
-                    style={{ paddingLeft: '1rem' }}
+                    style={{ paddingLeft: "1rem" }}
                   />
                 </div>
               </div>
 
               <div className="qv-field">
                 <span className="qv-field-icon">🔒</span>
+
                 <input
-                  type={showPassword ? 'text' : 'password'}
+                  type={showPassword ? "text" : "password"}
                   name="password"
                   className="qv-input"
                   required
+                  minLength={12}
+                  maxLength={128}
                   placeholder="Password"
+                  autoComplete="new-password"
                   value={formData.password}
                   onChange={handleChange}
                 />
+
                 <button
                   type="button"
                   className="qv-field-toggle"
-                  onClick={() => setShowPassword(!showPassword)}
+                  aria-label={showPassword ? "Hide password" : "Show password"}
+                  onClick={() => setShowPassword((previous) => !previous)}
                 >
-                  {showPassword ? '🙈' : '👁️'}
+                  {showPassword ? "🙈" : "👁️"}
                 </button>
               </div>
 
               <div className="qv-field">
                 <span className="qv-field-icon">🛡️</span>
+
                 <input
-                  type={showConfirmPassword ? 'text' : 'password'}
+                  type={showConfirmPassword ? "text" : "password"}
                   name="confirmPassword"
                   className="qv-input"
                   required
+                  minLength={12}
+                  maxLength={128}
                   placeholder="Confirm password"
+                  autoComplete="new-password"
                   value={formData.confirmPassword}
                   onChange={handleChange}
                 />
+
                 <button
                   type="button"
                   className="qv-field-toggle"
-                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                  aria-label={
+                    showConfirmPassword
+                      ? "Hide confirm password"
+                      : "Show confirm password"
+                  }
+                  onClick={() =>
+                    setShowConfirmPassword((previous) => !previous)
+                  }
                 >
-                  {showConfirmPassword ? '🙈' : '👁️'}
+                  {showConfirmPassword ? "🙈" : "👁️"}
                 </button>
               </div>
 
-              <button type="submit" disabled={loading} className="qv-btn-dark">
-                {loading ? 'Processing...' : 'Register'} <span>➔</span>
+              <button
+                type="submit"
+                disabled={loading}
+                className="qv-btn-dark"
+              >
+                {loading ? "Creating account..." : "Register"}
+                <span>➔</span>
               </button>
             </form>
 
@@ -275,37 +346,60 @@ export default function Register() {
             </p>
           </>
         ) : (
-          <div style={{ textAlign: 'center' }}>
+          <div style={{ textAlign: "center" }}>
             <h2 className="qv-title">Set Up Authenticator</h2>
+
             <p className="qv-subtitle">
-              Scan this QR code in <strong>Google Authenticator</strong>, then enter the 6-digit code.
+              Scan this QR code using <strong>Google Authenticator</strong>,
+              then enter the six-digit code it generates.
             </p>
 
             {qrCodeUrl && (
               <div className="qv-qr-wrapper">
                 <img
                   src={qrCodeUrl}
-                  alt="Google Authenticator QR Code"
-                  style={{ width: '170px', height: '170px', display: 'block', margin: '0 auto' }}
+                  alt="Google Authenticator setup QR code"
+                  style={{
+                    width: "170px",
+                    height: "170px",
+                    display: "block",
+                    margin: "0 auto",
+                  }}
                 />
               </div>
             )}
 
-            {error && <div className="qv-error-alert">{error}</div>}
+            {manualSetupKey && (
+              <div style={{ margin: "1rem 0", overflowWrap: "anywhere" }}>
+                <p>
+                  <strong>Can't scan the QR code?</strong>
+                </p>
+                <p>Enter this setup key manually in Google Authenticator:</p>
+                <code>{manualSetupKey}</code>
+              </div>
+            )}
+
+            {error && (
+              <div className="qv-error-alert" role="alert">
+                {error}
+              </div>
+            )}
 
             <OtpInput
               otp={otp}
               setOtp={setOtp}
-              onComplete={(code) => handleConfirmTotp(code)}
+              onComplete={handleConfirmTotp}
               disabled={loading}
             />
 
             <button
+              type="button"
               onClick={() => handleConfirmTotp()}
-              disabled={loading || otp.join('').length < 6}
+              disabled={loading || otp.join("").length !== 6}
               className="qv-btn-dark"
             >
-              {loading ? 'Activating...' : 'Activate & Finish'} <span>➔</span>
+              {loading ? "Verifying..." : "Activate & Finish"}
+              <span>➔</span>
             </button>
           </div>
         )}

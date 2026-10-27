@@ -6,6 +6,7 @@ import Login from './pages/Login';
 import Register from './pages/Register';
 import Home from './pages/Home';
 
+
 function App() {
   return (
     <BrowserRouter>
@@ -22,6 +23,7 @@ function App() {
 
         {/* Catch-all route redirects back to the landing page */}
         <Route path="*" element={<Navigate to="/" replace />} />
+        
       </Routes>
     </BrowserRouter>
   );
