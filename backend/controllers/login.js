@@ -1,3 +1,4 @@
+
 const argon2 = require("argon2");
 const jwt = require("jsonwebtoken");
 const pool = require("../db");
@@ -23,7 +24,7 @@ const loginUser = async (req, res, next) => {
 
     const normalizedEmail = email.trim().toLowerCase();
 
-    // 2. Find user and check their 2FA status
+    // 2. Find user, including registration and 2FA status
     const result = await pool.query(
       `SELECT
          user_id,
@@ -31,16 +32,18 @@ const loginUser = async (req, res, next) => {
          email,
          password_hash,
          token_version,
-         totp_enabled
+         totp_enabled,
+         registration_status
        FROM users
        WHERE email = $1
        LIMIT 1`,
       [normalizedEmail]
     );
 
+    // Declare user BEFORE accessing its properties
     const user = result.rows[0];
 
-    // 3. Verify password
+    // 3. Verify credentials
     if (
       !user ||
       !(await argon2.verify(user.password_hash, password))
@@ -51,7 +54,15 @@ const loginUser = async (req, res, next) => {
       });
     }
 
-    // 4. Validate JWT configuration
+    // 4. Reject accounts with incomplete registration
+    if (user.registration_status !== "active") {
+      return res.status(403).json({
+        success: false,
+        message: "Please complete registration and 2FA setup before logging in.",
+      });
+    }
+
+    // 5. Validate JWT configuration
     const jwtSecret = process.env.JWT_SECRET;
 
     if (
@@ -61,8 +72,8 @@ const loginUser = async (req, res, next) => {
       throw new Error("JWT_SECRET is missing or too short.");
     }
 
-    // 5. If 2FA is enabled, issue a restricted login challenge.
-    // Do NOT issue the authenticated cookie yet.
+    // 6. If 2FA is enabled, issue a restricted login challenge.
+    // Do not issue the authenticated cookie before OTP verification.
     if (user.totp_enabled) {
       const challengeToken = jwt.sign(
         {
@@ -87,7 +98,8 @@ const loginUser = async (req, res, next) => {
       });
     }
 
-    // 6. Normal login when 2FA is disabled
+    // 7. Normal login for active accounts without 2FA.
+    // New registrations should have 2FA enabled before activation.
     const token = jwt.sign(
       {
         ver: user.token_version,
@@ -99,11 +111,11 @@ const loginUser = async (req, res, next) => {
         subject: String(user.user_id),
         issuer: "vaultix-api",
         audience: "vaultix-client",
-        expiresIn: process.env.JWT_EXPIRES_IN,
+        expiresIn: process.env.JWT_EXPIRES_IN || "15m",
       }
     );
 
-    // 7. Store authenticated JWT in an HttpOnly cookie
+    // 8. Store authenticated JWT in an HttpOnly cookie
     const isProduction = process.env.NODE_ENV === "production";
 
     res.cookie("vaultix_token", token, {
@@ -114,7 +126,7 @@ const loginUser = async (req, res, next) => {
       maxAge: 15 * 60 * 1000,
     });
 
-    // 8. Return safe user information
+    // 9. Return safe user information
     return res.status(200).json({
       success: true,
       requiresTwoFactor: false,
@@ -126,7 +138,7 @@ const loginUser = async (req, res, next) => {
       },
     });
   } catch (error) {
-    next(error);
+    return next(error);
   }
 };
 
