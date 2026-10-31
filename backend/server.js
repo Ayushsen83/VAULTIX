@@ -35,7 +35,7 @@ app.use(helmet());
 
 // 2. Configure allowed frontend origins
 const allowedOrigins = [
- 
+  "http://localhost:5173",
   process.env.FRONTEND_URL,
 ].filter(Boolean);
 app.set("trust proxy", 1);
