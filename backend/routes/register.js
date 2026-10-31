@@ -9,7 +9,7 @@ const {
 
 const router = express.Router();
 //disabled for now, as we are using the 2FA registration flow
-// router.post("/", registerUser);
+  router.post("/", registerUser);
 
 router.post(
   "/2fa/setup",
