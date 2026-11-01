@@ -32,9 +32,7 @@ const app = express();
 app.use(express.json({ limit: "1mb" }));
 app.use(cookieParser());
 app.use(helmet());
-app.use(cors({
-    origin: "*"
-}));
+app.use(cors());
 // 2. Configure allowed frontend origins
 // const allowedOrigins = [
 //   "http://localhost:5173",
