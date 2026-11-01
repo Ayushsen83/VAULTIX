@@ -32,28 +32,28 @@ const app = express();
 app.use(express.json({ limit: "1mb" }));
 app.use(cookieParser());
 app.use(helmet());
-app.use(cors());
-// 2. Configure allowed frontend origins
-// const allowedOrigins = [
-//   "http://localhost:5173",
-//   process.env.FRONTEND_URL,
-// ].filter(Boolean);
-// app.set("trust proxy", 1);
-// app.use(
-//   cors({
-//     origin: (origin, callback) => {
-//       // Requests without Origin are allowed for tools and server-to-server calls.
-//       if (!origin || allowedOrigins.includes(origin)) {
-//         return callback(null, true);
-//       }
 
-//       return callback(new Error("Origin not allowed by CORS"));
-//     },
-//     credentials: true,
-//     methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-//     allowedHeaders: ["Content-Type", "X-CSRF-Token"],
-//   }),
-// );
+2. Configure allowed frontend origins
+const allowedOrigins = [
+  "http://localhost:5173",
+  process.env.FRONTEND_URL,
+].filter(Boolean);
+app.set("trust proxy", 1);
+app.use(
+  cors({
+    origin: (origin, callback) => {
+      // Requests without Origin are allowed for tools and server-to-server calls.
+      if (!origin || allowedOrigins.includes(origin)) {
+        return callback(null, true);
+      }
+
+      return callback(new Error("Origin not allowed by CORS"));
+    },
+    credentials: true,
+    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "X-CSRF-Token"],
+  }),
+);
 app.get("/debug/client-ip", (req, res) => {
   res.json({
     ip: req.ip,
