@@ -33,9 +33,10 @@ app.use(express.json({ limit: "1mb" }));
 app.use(cookieParser());
 app.use(helmet());
 
-2. Configure allowed frontend origins
+// 2. Configure allowed frontend origins
 const allowedOrigins = [
   "http://localhost:5173",
+  "https://vaultix-git-feature-profile-dashboard-ayushsen83.vercel.app/",
   process.env.FRONTEND_URL,
 ].filter(Boolean);
 app.set("trust proxy", 1);
