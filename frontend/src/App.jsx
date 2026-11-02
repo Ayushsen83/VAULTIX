@@ -5,6 +5,8 @@ import Landing from './pages/Landing';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import Home from './pages/Home';
+import Notes from './pages/Notes';
+import Documents from './pages/Documents';
 
 
 function App() {
@@ -20,6 +22,10 @@ function App() {
 
         {/* Main application dashboard */}
         <Route path="/home" element={<Home />} />
+
+        <Route path="/notes" element={<Notes />} />
+
+        <Route path="/documents" element={<Documents />} />
 
         {/* Catch-all route redirects back to the landing page */}
         <Route path="*" element={<Navigate to="/" replace />} />
