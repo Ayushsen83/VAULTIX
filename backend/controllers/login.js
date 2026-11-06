@@ -111,7 +111,7 @@ const loginUser = async (req, res, next) => {
         subject: String(user.user_id),
         issuer: "vaultix-api",
         audience: "vaultix-client",
-        expiresIn: process.env.JWT_EXPIRES_IN || "15m",
+        expiresIn: process.env.JWT_EXPIRES_IN ,
       }
     );
 
@@ -121,9 +121,9 @@ const loginUser = async (req, res, next) => {
     res.cookie("vaultix_token", token, {
       httpOnly: true,
       secure: isProduction,
-      sameSite: "lax",
+       sameSite: isProduction ? "none" : "lax",
       path: "/",
-      maxAge: 15 * 60 * 1000,
+      maxAge: 170 * 60 * 1000,
     });
 
     // 9. Return safe user information
