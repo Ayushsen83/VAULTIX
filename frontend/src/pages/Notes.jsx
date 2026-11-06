@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import api from "../services/api";
+import api, { fetchFreshCsrfToken } from "../services/api";
 import "./Notes.css";
 
 const colors = ["yellow", "pink", "blue", "green", "purple"];
@@ -17,6 +17,19 @@ export default function Notes() {
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
   const [saving, setSaving] = useState(false);
+
+  // HttpOnly access cookies are sent automatically by Axios (withCredentials: true).
+  // Fetch a CSRF token before every state-changing request; api.js's interceptor
+  // attaches it as X-CSRF-Token. This does NOT read or send the access token manually.
+  const requireCsrfToken = async () => {
+    const token = await fetchFreshCsrfToken();
+    if (!token) {
+      throw new Error(
+        "Could not obtain a security token. Refresh the page and try again."
+      );
+    }
+    return token;
+  };
 
   const fetchNotes = async () => {
     try {
@@ -71,6 +84,8 @@ export default function Notes() {
     try {
       setSaving(true);
 
+      await requireCsrfToken();
+
       if (editingNote) {
         await api.put(`/notes/${editingNote.id}`, {
           title,
@@ -92,6 +107,7 @@ export default function Notes() {
     } catch (err) {
       alert(
         err.response?.data?.message ||
+        err.message ||
         "Something went wrong while saving your note."
       );
     } finally {
@@ -107,11 +123,13 @@ export default function Notes() {
     if (!confirmed) return;
 
     try {
+      await requireCsrfToken();
       await api.delete(`/notes/${id}`);
       await fetchNotes();
     } catch (err) {
       alert(
         err.response?.data?.message ||
+        err.message ||
         "Unable to delete note."
       );
     }
