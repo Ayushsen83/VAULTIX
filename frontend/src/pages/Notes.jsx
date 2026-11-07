@@ -1,6 +1,6 @@
 
 import React, { useEffect, useState } from "react";
-import api, { fetchFreshCsrfToken } from "../services/api";
+import api, { refreshCsrfToken } from "../services/api";
 import "./Notes.css";
 
 const colors = ["yellow", "pink", "blue", "green", "purple"];
@@ -22,7 +22,7 @@ export default function Notes() {
   // HttpOnly access cookie is automatically sent by Axios.
   // No manual access-token handling is required.
   const requireCsrfToken = async () => {
-    const token = await fetchFreshCsrfToken();
+    const token = await refreshCsrfToken();
 
     if (!token) {
       throw new Error(

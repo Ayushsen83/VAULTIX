@@ -11,18 +11,6 @@ const api = axios.create({
   },
 });
 
-// Read a JavaScript-accessible CSRF cookie.
-// Never attempt to read the HttpOnly authentication cookie.
-function getCookie(name) {
-  const escapedName = name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-
-  const match = document.cookie.match(
-    new RegExp(`(?:^|;\\s*)${escapedName}=([^;]*)`)
-  );
-
-  return match ? decodeURIComponent(match[1]) : null;
-}
-
 // Attach CSRF token to state-changing requests.
 api.interceptors.request.use(
   (config) => {
@@ -36,17 +24,14 @@ api.interceptors.request.use(
     ].includes(method);
 
     if (isStateChanging) {
-      const csrfToken =
-        sessionStorage.getItem("csrf_token") ||
-        getCookie("x-csrf-token") ||
-        getCookie("_csrf") ||
-        getCookie("csrfToken");
+      const csrfToken = sessionStorage.getItem("csrf_token");
 
       if (csrfToken) {
-        if (typeof config.headers?.set === "function") {
+        config.headers = config.headers || {};
+
+        if (typeof config.headers.set === "function") {
           config.headers.set("X-CSRF-Token", csrfToken);
         } else {
-          config.headers = config.headers || {};
           config.headers["X-CSRF-Token"] = csrfToken;
         }
       }
@@ -57,30 +42,27 @@ api.interceptors.request.use(
   (error) => Promise.reject(error)
 );
 
-// Backend must provide GET /api/csrf
-// Response format: { csrfToken: "..." }
+// Fetch a fresh CSRF token from the backend.
 export const fetchFreshCsrfToken = async () => {
   try {
     const response = await api.get("/csrf");
 
     const token = response.data?.csrfToken;
 
-    if (typeof token !== "string" || token.length === 0) {
-      throw new Error(
-        "The CSRF endpoint did not return a valid token."
-      );
+    if (typeof token !== "string" || !token.length) {
+      throw new Error("Invalid CSRF token response.");
     }
 
     sessionStorage.setItem("csrf_token", token);
 
     return token;
   } catch (error) {
+    sessionStorage.removeItem("csrf_token");
+
     console.error(
-      "Unable to obtain CSRF token:",
+      "CSRF token fetch failed:",
       error.response?.data || error.message
     );
-
-    sessionStorage.removeItem("csrf_token");
 
     throw error;
   }
