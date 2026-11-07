@@ -9,8 +9,8 @@ export default function Home() {
       <div style={styles.card}>
         <h1 style={styles.title}>Welcome to Vaultix!</h1>
         <p style={styles.subtitle}>You have successfully logged in.</p>
-        <button onClick={() => navigate('/login')} style={styles.button}>
-          Sign Out
+        <button onClick={() => navigate('/Notes')} style={styles.button}>
+          View Notes
         </button>
       </div>
     </div>
