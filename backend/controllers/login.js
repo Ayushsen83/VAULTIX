@@ -121,7 +121,7 @@ const loginUser = async (req, res, next) => {
     res.cookie("vaultix_token", token, {
       httpOnly: true,
       secure: isProduction,
-       sameSite: isProduction ? "none" : "lax",
+       sameSite: "none",
       path: "/",
       maxAge: 170 * 60 * 1000,
     });

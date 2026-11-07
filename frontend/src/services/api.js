@@ -1,12 +1,21 @@
+
 import axios from "axios";
 
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_BASE_URL || "http://localhost:5000/api",
+  baseURL:
+    import.meta.env.VITE_API_BASE_URL ||
+    "http://localhost:5000/api",
   withCredentials: true,
+  headers: {
+    "Content-Type": "application/json",
+  },
 });
 
+// Read a JavaScript-accessible CSRF cookie.
+// Never attempt to read the HttpOnly authentication cookie.
 function getCookie(name) {
   const escapedName = name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
   const match = document.cookie.match(
     new RegExp(`(?:^|;\\s*)${escapedName}=([^;]*)`)
   );
@@ -15,11 +24,16 @@ function getCookie(name) {
 }
 
 // Attach CSRF token to state-changing requests.
-// Authentication is handled by the HttpOnly cookie, not a Bearer token.
 api.interceptors.request.use(
   (config) => {
     const method = (config.method || "get").toLowerCase();
-    const isStateChanging = ["post", "put", "patch", "delete"].includes(method);
+
+    const isStateChanging = [
+      "post",
+      "put",
+      "patch",
+      "delete",
+    ].includes(method);
 
     if (isStateChanging) {
       const csrfToken =
@@ -29,7 +43,12 @@ api.interceptors.request.use(
         getCookie("csrfToken");
 
       if (csrfToken) {
-        config.headers["X-CSRF-Token"] = csrfToken;
+        if (typeof config.headers?.set === "function") {
+          config.headers.set("X-CSRF-Token", csrfToken);
+        } else {
+          config.headers = config.headers || {};
+          config.headers["X-CSRF-Token"] = csrfToken;
+        }
       }
     }
 
@@ -38,27 +57,32 @@ api.interceptors.request.use(
   (error) => Promise.reject(error)
 );
 
-// Fetch a fresh CSRF token.
-// Assumes backend mounts GET /token at /api/csrf.
+// Backend must provide GET /api/csrf
+// Response format: { csrfToken: "..." }
 export const fetchFreshCsrfToken = async () => {
   try {
-    const res = await api.get("/csrf");
+    const response = await api.get("/csrf");
 
-    const token = res.data?.csrfToken;
+    const token = response.data?.csrfToken;
 
-    if (typeof token === "string" && token.length > 0) {
-      sessionStorage.setItem("csrf_token", token);
-      return token;
+    if (typeof token !== "string" || token.length === 0) {
+      throw new Error(
+        "The CSRF endpoint did not return a valid token."
+      );
     }
 
-    console.warn("CSRF endpoint did not return a token.");
-    return null;
-  } catch (err) {
-    console.warn(
-      "CSRF token fetch warning:",
-      err.response?.data || err.message
+    sessionStorage.setItem("csrf_token", token);
+
+    return token;
+  } catch (error) {
+    console.error(
+      "Unable to obtain CSRF token:",
+      error.response?.data || error.message
     );
-    return null;
+
+    sessionStorage.removeItem("csrf_token");
+
+    throw error;
   }
 };
 

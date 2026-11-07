@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from "react";
 import api, { fetchFreshCsrfToken } from "../services/api";
 import "./Notes.css";
@@ -18,19 +19,21 @@ export default function Notes() {
   const [content, setContent] = useState("");
   const [saving, setSaving] = useState(false);
 
-  // HttpOnly access cookies are sent automatically by Axios (withCredentials: true).
-  // Fetch a CSRF token before every state-changing request; api.js's interceptor
-  // attaches it as X-CSRF-Token. This does NOT read or send the access token manually.
+  // HttpOnly access cookie is automatically sent by Axios.
+  // No manual access-token handling is required.
   const requireCsrfToken = async () => {
     const token = await fetchFreshCsrfToken();
+
     if (!token) {
       throw new Error(
-        "Could not obtain a security token. Refresh the page and try again."
+        "Could not obtain a security token. Please try again."
       );
     }
+
     return token;
   };
 
+  // Fetch notes
   const fetchNotes = async () => {
     try {
       setLoading(true);
@@ -46,10 +49,18 @@ export default function Notes() {
 
       setNotes(response.data.notes || []);
     } catch (err) {
-      setError(
-        err.response?.data?.message ||
-        "Unable to load notes. Please try again."
-      );
+      console.error("Fetch notes error:", err);
+
+      if (err.response?.status === 401) {
+        setError(
+          "Your session is missing or expired. Please log in again."
+        );
+      } else {
+        setError(
+          err.response?.data?.message ||
+          "Unable to load notes. Please try again."
+        );
+      }
     } finally {
       setLoading(false);
     }
@@ -59,6 +70,7 @@ export default function Notes() {
     fetchNotes();
   }, [search, sort]);
 
+  // Create new note
   const openNewNote = () => {
     setEditingNote(null);
     setTitle("");
@@ -66,13 +78,15 @@ export default function Notes() {
     setShowEditor(true);
   };
 
+  // Edit existing note
   const openEditNote = (note) => {
     setEditingNote(note);
     setTitle(note.title);
-    setContent(note.content);
+    setContent(note.content || "");
     setShowEditor(true);
   };
 
+  // Save note
   const saveNote = async (e) => {
     e.preventDefault();
 
@@ -84,16 +98,17 @@ export default function Notes() {
     try {
       setSaving(true);
 
+      // Obtain CSRF token before mutation.
       await requireCsrfToken();
 
       if (editingNote) {
         await api.put(`/notes/${editingNote.id}`, {
-          title,
+          title: title.trim(),
           content,
         });
       } else {
         await api.post("/notes", {
-          title,
+          title: title.trim(),
           content,
         });
       }
@@ -105,6 +120,8 @@ export default function Notes() {
 
       await fetchNotes();
     } catch (err) {
+      console.error("Save note error:", err);
+
       alert(
         err.response?.data?.message ||
         err.message ||
@@ -115,6 +132,7 @@ export default function Notes() {
     }
   };
 
+  // Delete note
   const deleteNote = async (id) => {
     const confirmed = window.confirm(
       "Are you sure you want to delete this note?"
@@ -124,9 +142,13 @@ export default function Notes() {
 
     try {
       await requireCsrfToken();
+
       await api.delete(`/notes/${id}`);
+
       await fetchNotes();
     } catch (err) {
+      console.error("Delete note error:", err);
+
       alert(
         err.response?.data?.message ||
         err.message ||
@@ -135,6 +157,7 @@ export default function Notes() {
     }
   };
 
+  // Format date
   const formatDate = (date) => {
     if (!date) return "";
 
@@ -153,6 +176,7 @@ export default function Notes() {
 
         <div className="notes-brand">
           <div className="brand-icon">V</div>
+
           <div>
             <h2>VAULTIX</h2>
             <span>Your Digital Locker</span>
@@ -179,6 +203,7 @@ export default function Notes() {
 
           <div className="notes-search">
             <span>⌕</span>
+
             <input
               type="text"
               placeholder="Search your notes..."
@@ -188,6 +213,7 @@ export default function Notes() {
           </div>
 
           <div className="notes-header-actions">
+
             <span className="notes-date">
               {new Date().toLocaleDateString("en-IN", {
                 day: "2-digit",
@@ -197,6 +223,7 @@ export default function Notes() {
             </span>
 
             <div className="notes-avatar">V</div>
+
           </div>
 
         </header>
@@ -205,12 +232,21 @@ export default function Notes() {
         <section className="notes-heading">
 
           <div>
-            <span className="notes-eyebrow">YOUR PERSONAL SPACE</span>
+            <span className="notes-eyebrow">
+              YOUR PERSONAL SPACE
+            </span>
+
             <h1>My Notes<span>.</span></h1>
-            <p>Save your thoughts, ideas and important points.</p>
+
+            <p>
+              Save your thoughts, ideas and important points.
+            </p>
           </div>
 
-          <button className="new-note-btn" onClick={openNewNote}>
+          <button
+            className="new-note-btn"
+            onClick={openNewNote}
+          >
             + New Note
           </button>
 
@@ -218,6 +254,7 @@ export default function Notes() {
 
         {/* NOTE INFORMATION */}
         <section className="notes-info">
+
           <div>
             <strong>{notes.length}</strong>
             <span> Total Notes</span>
@@ -231,10 +268,16 @@ export default function Notes() {
               value={sort}
               onChange={(e) => setSort(e.target.value)}
             >
-              <option value="updated_at">Recently Updated</option>
-              <option value="created_at">Recently Created</option>
+              <option value="updated_at">
+                Recently Updated
+              </option>
+
+              <option value="created_at">
+                Recently Created
+              </option>
             </select>
           </div>
+
         </section>
 
         {/* NOTES GRID */}
@@ -248,7 +291,10 @@ export default function Notes() {
 
           <div className="notes-message notes-error">
             {error}
-            <button onClick={fetchNotes}>Try Again</button>
+
+            <button onClick={fetchNotes}>
+              Try Again
+            </button>
           </div>
 
         ) : notes.length === 0 ? (
@@ -282,6 +328,7 @@ export default function Notes() {
               >
 
                 <div className="note-card-top">
+
                   <span className="note-date">
                     {formatDate(note.updated_at)}
                   </span>
@@ -293,6 +340,7 @@ export default function Notes() {
                   >
                     ✎
                   </button>
+
                 </div>
 
                 <h3>{note.title}</h3>
@@ -308,6 +356,7 @@ export default function Notes() {
                   </span>
 
                   <div>
+
                     <button
                       onClick={() => openEditNote(note)}
                       title="Edit"
@@ -321,6 +370,7 @@ export default function Notes() {
                     >
                       Delete
                     </button>
+
                   </div>
 
                 </div>
@@ -352,8 +402,11 @@ export default function Notes() {
 
               <div>
                 <span>YOUR PERSONAL SPACE</span>
+
                 <h2>
-                  {editingNote ? "Edit Note" : "Create New Note"}
+                  {editingNote
+                    ? "Edit Note"
+                    : "Create New Note"}
                 </h2>
               </div>
 
