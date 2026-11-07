@@ -185,7 +185,7 @@ export default function Notes() {
 
         <nav className="notes-navigation">
           <a href="/home">⌂ <span>Home</span></a>
-          <a href="/documents">▤ <span>Documents</span></a>
+          <a href="/Documents">▤ <span>Documents</span></a>
           <a href="/notes" className="active">▧ <span>Notes</span></a>
           <a href="/profile">♙ <span>Profile</span></a>
         </nav>
