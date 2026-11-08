@@ -1,7 +1,7 @@
 
 import React from "react";
 import { Outlet } from "react-router-dom";
-import Sidebar from "../Sidebar";
+import Sidebar from "../sidebar";
 import "./ProtectedLayout.css";
 
 export default function ProtectedLayout() {
