@@ -1,13 +1,17 @@
 
 const express = require("express");
+
 const { authenticateToken } = require("../middleware/auth.middleware");
+
 const {
   doubleCsrfProtection,
 } = require("../middleware/csrf.middleware");
+
 const {
   generalLimiter,
   uploadLimiter,
 } = require("../middleware/rateLimit.middleware");
+
 const {
   upload,
   handleUploadError,
@@ -20,22 +24,34 @@ const {
 } = require("../controllers/files.controller");
 
 const router = express.Router();
-// Apply general rate limiting to all file routes.
-router.use(generalLimiter);
-// All document endpoints require authentication.
-router.use(authenticateToken);
 
-// GET requests are exempt from CSRF by the configured middleware.
-// Mutating requests must include a valid X-CSRF-Token.
+router.use(generalLimiter);
+router.use(authenticateToken);
 router.use(doubleCsrfProtection);
 
+// GET routes
 router.get("/", listFiles);
 router.get("/:id", getFile);
 router.get("/:id/preview", previewFile);
 router.get("/:id/download", downloadFile);
 
-// Apply CSRF protection before Multer buffers the upload.
-router.post("/", upload.single("file"),uploadLimiter,  handleUploadError,createFile);
+// Upload route
+router.post(
+  "/",
+  uploadLimiter,
+  (req, res, next) => {
+    upload.single("file")(req, res, (err) => {
+      if (err) {
+        return handleUploadError(err, req, res, next);
+      }
+
+      next();
+    });
+  },
+  createFile
+);
+
+// Delete route
 router.delete("/:id", deleteFile);
 
 module.exports = router;
