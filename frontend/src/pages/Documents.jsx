@@ -1,5 +1,6 @@
+
 import React, { useEffect, useRef, useState } from "react";
-import api from "../services/api";
+import api, { refreshCsrfToken } from "../services/api";
 import "./Documents.css";
 
 export default function Documents() {
@@ -14,6 +15,20 @@ export default function Documents() {
   const [pagination, setPagination] = useState({});
   const inputRef = useRef(null);
 
+  // Get a fresh CSRF token before every mutation.
+  const requireCsrfToken = async () => {
+    const token = await refreshCsrfToken();
+
+    if (!token) {
+      throw new Error(
+        "Could not obtain a security token. Please try again."
+      );
+    }
+
+    return token;
+  };
+
+  // Fetch documents
   const fetchFiles = async () => {
     try {
       setLoading(true);
@@ -33,6 +48,8 @@ export default function Documents() {
       setFiles(response.data.files || []);
       setPagination(response.data.pagination || {});
     } catch (err) {
+      console.error("Fetch documents error:", err);
+
       setError(
         err.response?.data?.message ||
           "Unable to load documents. Please try again."
@@ -42,10 +59,12 @@ export default function Documents() {
     }
   };
 
+  // Reload documents when filters change
   useEffect(() => {
     fetchFiles();
   }, [search, type, sort]);
 
+  // Format file size
   const formatSize = (bytes) => {
     if (!bytes) return "0 KB";
 
@@ -54,6 +73,7 @@ export default function Documents() {
       : `${(bytes / 1024).toFixed(1)} KB`;
   };
 
+  // Format date
   const formatDate = (date) => {
     if (!date) return "";
 
@@ -64,10 +84,12 @@ export default function Documents() {
     });
   };
 
+  // Get file type
   const getFileType = (file) => {
     return file.mime_type === "application/pdf" ? "PDF" : "AUDIO";
   };
 
+  // Upload document
   const handleUpload = async (event) => {
     const file = event.target.files?.[0];
 
@@ -78,12 +100,17 @@ export default function Documents() {
     const extension = file.name.split(".").pop().toLowerCase();
     const allowed = ["pdf", "mp3", "wav", "m4a"];
 
+    // Validate file extension
     if (!allowed.includes(extension)) {
-      setUploadError("Only PDF, MP3, WAV and M4A files are allowed.");
+      setUploadError(
+        "Only PDF, MP3, WAV and M4A files are allowed."
+      );
+
       event.target.value = "";
       return;
     }
 
+    // Validate file size
     const maxSize =
       extension === "pdf"
         ? 50 * 1024 * 1024
@@ -95,6 +122,7 @@ export default function Documents() {
           ? "PDF file must be smaller than 50 MB."
           : "Audio file must be smaller than 10 MB."
       );
+
       event.target.value = "";
       return;
     }
@@ -102,14 +130,25 @@ export default function Documents() {
     try {
       setUploading(true);
 
+      // Prepare multipart form data
       const formData = new FormData();
       formData.append("file", file);
 
+      // Get fresh CSRF token
+      await requireCsrfToken();
+
+      // Upload document
       await api.post("/files", formData);
+
+      // Refresh document list
       await fetchFiles();
+
     } catch (err) {
+      console.error("Upload document error:", err);
+
       setUploadError(
         err.response?.data?.message ||
+          err.message ||
           "Unable to upload document. Please try again."
       );
     } finally {
@@ -118,6 +157,7 @@ export default function Documents() {
     }
   };
 
+  // Delete document
   const handleDelete = async (file) => {
     const confirmed = window.confirm(
       `Are you sure you want to delete "${file.file_name}"?`
@@ -126,16 +166,27 @@ export default function Documents() {
     if (!confirmed) return;
 
     try {
+      // Get fresh CSRF token
+      await requireCsrfToken();
+
+      // Delete document
       await api.delete(`/files/${file.id}`);
+
+      // Refresh document list
       await fetchFiles();
+
     } catch (err) {
+      console.error("Delete document error:", err);
+
       alert(
         err.response?.data?.message ||
+          err.message ||
           "Unable to delete document."
       );
     }
   };
 
+  // Preview document
   const handlePreview = async (file) => {
     try {
       const response = await api.get(
@@ -148,11 +199,19 @@ export default function Documents() {
 
       if (!newWindow) {
         URL.revokeObjectURL(blobUrl);
-        alert("Please allow pop-ups to preview this document.");
+
+        alert(
+          "Please allow pop-ups to preview this document."
+        );
       } else {
-        setTimeout(() => URL.revokeObjectURL(blobUrl), 60000);
+        setTimeout(() => {
+          URL.revokeObjectURL(blobUrl);
+        }, 60000);
       }
+
     } catch (err) {
+      console.error("Preview document error:", err);
+
       alert(
         err.response?.data?.message ||
           "Unable to preview this document."
@@ -160,6 +219,7 @@ export default function Documents() {
     }
   };
 
+  // Download document
   const handleDownload = async (file) => {
     try {
       const response = await api.get(
@@ -177,8 +237,13 @@ export default function Documents() {
       link.click();
       link.remove();
 
-      setTimeout(() => URL.revokeObjectURL(url), 1000);
+      setTimeout(() => {
+        URL.revokeObjectURL(url);
+      }, 1000);
+
     } catch (err) {
+      console.error("Download document error:", err);
+
       alert(
         err.response?.data?.message ||
           "Unable to download document."
@@ -186,11 +251,14 @@ export default function Documents() {
     }
   };
 
+  // Calculate total storage usage
   const totalUsed = files.reduce(
-    (total, file) => total + Number(file.size_bytes || 0),
+    (total, file) =>
+      total + Number(file.size_bytes || 0),
     0
   );
 
+  // Calculate storage percentage
   const usagePercentage = Math.min(
     (totalUsed / (100 * 1024 * 1024)) * 100,
     100
@@ -198,33 +266,16 @@ export default function Documents() {
 
   return (
     <div className="documents-layout">
-      <aside className="documents-sidebar">
-        <div className="documents-brand">
-          <div className="documents-brand-icon">V</div>
-          <div>
-            <h2>VAULTIX</h2>
-            <span>Your Digital Locker</span>
-          </div>
-        </div>
 
-        <nav className="documents-navigation">
-          <a href="/home">⌂ <span>Home</span></a>
-          <a href="/documents" className="active">
-            ▤ <span>Documents</span>
-          </a>
-          <a href="/notes">▧ <span>Notes</span></a>
-          <a href="/profile">♙ <span>Profile</span></a>
-        </nav>
-
-        <div className="documents-sidebar-bottom">
-          <a href="/login">↪ <span>Logout</span></a>
-        </div>
-      </aside>
-
+      {/* MAIN CONTENT */}
       <main className="documents-main">
+
+        {/* HEADER */}
         <header className="documents-header">
+
           <div className="documents-search">
             <span>⌕</span>
+
             <input
               type="text"
               placeholder="Search your documents..."
@@ -234,6 +285,7 @@ export default function Documents() {
           </div>
 
           <div className="documents-header-actions">
+
             <span>
               {new Date().toLocaleDateString("en-IN", {
                 day: "2-digit",
@@ -241,16 +293,25 @@ export default function Documents() {
                 year: "numeric",
               })}
             </span>
+
             <div className="documents-avatar">V</div>
+
           </div>
+
         </header>
 
+        {/* PAGE HEADING */}
         <section className="documents-heading">
+
           <div>
             <span className="documents-eyebrow">
               YOUR SECURE STORAGE
             </span>
-            <h1>My Documents<span>.</span></h1>
+
+            <h1>
+              My Documents<span>.</span>
+            </h1>
+
             <p>
               All your important files, safely stored in one place.
             </p>
@@ -261,7 +322,9 @@ export default function Documents() {
             onClick={() => inputRef.current?.click()}
             disabled={uploading}
           >
-            {uploading ? "Uploading..." : "+ Upload Document"}
+            {uploading
+              ? "Uploading..."
+              : "+ Upload Document"}
           </button>
 
           <input
@@ -271,40 +334,65 @@ export default function Documents() {
             accept=".pdf,.mp3,.wav,.m4a"
             onChange={handleUpload}
           />
+
         </section>
 
+        {/* UPLOAD ERROR */}
         {uploadError && (
           <div className="documents-upload-error">
             {uploadError}
-            <button onClick={() => setUploadError("")}>×</button>
+
+            <button
+              onClick={() => setUploadError("")}
+            >
+              ×
+            </button>
           </div>
         )}
 
+        {/* STORAGE INFORMATION */}
         <section className="documents-storage">
+
           <div>
             <span>YOUR STORAGE</span>
+
             <h3>
-              {formatSize(totalUsed)} <small>of 100 MB used</small>
+              {formatSize(totalUsed)}
+              <small> of 100 MB used</small>
             </h3>
           </div>
 
           <div className="storage-progress">
-            <div style={{ width: `${usagePercentage}%` }} />
+            <div
+              style={{
+                width: `${usagePercentage}%`,
+              }}
+            />
           </div>
 
           <span className="storage-percentage">
             {usagePercentage.toFixed(1)}% used
           </span>
+
         </section>
 
+        {/* DOCUMENT INFORMATION AND FILTERS */}
         <section className="documents-info">
+
           <div>
-            <strong>{pagination.total ?? files.length}</strong>
+            <strong>
+              {pagination.total ?? files.length}
+            </strong>
+
             <span> Total Documents</span>
           </div>
 
           <div className="documents-filters">
-            <label htmlFor="file-type">Type:</label>
+
+            <label htmlFor="file-type">
+              Type:
+            </label>
+
             <select
               id="file-type"
               value={type}
@@ -315,7 +403,10 @@ export default function Documents() {
               <option value="audio">Audio</option>
             </select>
 
-            <label htmlFor="file-sort">Sort:</label>
+            <label htmlFor="file-sort">
+              Sort:
+            </label>
+
             <select
               id="file-sort"
               value={sort}
@@ -325,44 +416,78 @@ export default function Documents() {
               <option value="file_name">Name</option>
               <option value="size_bytes">Size</option>
             </select>
+
           </div>
+
         </section>
 
+        {/* DOCUMENT LIST */}
         {loading ? (
+
           <div className="documents-message">
             Loading your documents...
           </div>
+
         ) : error ? (
+
           <div className="documents-message documents-error">
+
             {error}
-            <button onClick={fetchFiles}>Try Again</button>
+
+            <button onClick={fetchFiles}>
+              Try Again
+            </button>
+
           </div>
+
         ) : files.length === 0 ? (
+
           <div className="documents-empty">
-            <div className="documents-empty-icon">▤</div>
+
+            <div className="documents-empty-icon">
+              ▤
+            </div>
+
             <h2>No documents found</h2>
+
             <p>
               Your important files deserve a secure home.
               Upload your first document!
             </p>
-            <button onClick={() => inputRef.current?.click()}>
+
+            <button
+              onClick={() => inputRef.current?.click()}
+            >
               + Upload Your First Document
             </button>
+
           </div>
+
         ) : (
+
           <section className="documents-grid">
+
             {files.map((file) => (
-              <article className="document-card" key={file.id}>
+
+              <article
+                className="document-card"
+                key={file.id}
+              >
+
                 <div className="document-card-top">
+
                   <div
                     className={`document-file-icon ${getFileType(file).toLowerCase()}`}
                   >
-                    {getFileType(file) === "PDF" ? "PDF" : "♫"}
+                    {getFileType(file) === "PDF"
+                      ? "PDF"
+                      : "♫"}
                   </div>
 
                   <span className="document-file-type">
                     {getFileType(file)}
                   </span>
+
                 </div>
 
                 <h3 className="document-file-name">
@@ -370,16 +495,28 @@ export default function Documents() {
                 </h3>
 
                 <div className="document-file-details">
-                  <span>{formatSize(file.size_bytes)}</span>
-                  <span>{formatDate(file.created_at)}</span>
+
+                  <span>
+                    {formatSize(file.size_bytes)}
+                  </span>
+
+                  <span>
+                    {formatDate(file.created_at)}
+                  </span>
+
                 </div>
 
                 <div className="document-card-actions">
-                  <button onClick={() => handlePreview(file)}>
+
+                  <button
+                    onClick={() => handlePreview(file)}
+                  >
                     Preview
                   </button>
 
-                  <button onClick={() => handleDownload(file)}>
+                  <button
+                    onClick={() => handleDownload(file)}
+                  >
                     Download
                   </button>
 
@@ -389,12 +526,19 @@ export default function Documents() {
                   >
                     Delete
                   </button>
+
                 </div>
+
               </article>
+
             ))}
+
           </section>
+
         )}
+
       </main>
+
     </div>
   );
 }

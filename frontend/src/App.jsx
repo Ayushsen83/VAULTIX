@@ -1,35 +1,41 @@
-import React from 'react';
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 
-import Landing from './pages/Landing';
-import Login from './pages/Login';
-import Register from './pages/Register';
-import Home from './pages/Home';
-import Notes from './pages/Notes';
-import Documents from './pages/Documents';
+import React from "react";
+import {
+  BrowserRouter,
+  Routes,
+  Route,
+  Navigate,
+} from "react-router-dom";
 
+import ProtectedLayout from "./components/layouts/ProtectedLayout";
+
+import Landing from "./pages/Landing";
+import Login from "./pages/Login";
+import Register from "./pages/Register";
+import Home from "./pages/Home";
+import Notes from "./pages/Notes";
+import Documents from "./pages/Documents";
+import Profile from "./pages/Profile";
 
 function App() {
   return (
     <BrowserRouter>
       <Routes>
-        {/* Root path displays the Welcome Landing page */}
+        {/* Public routes */}
         <Route path="/" element={<Landing />} />
-
-        {/* Authentication routes */}
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
 
-        {/* Main application dashboard */}
-        <Route path="/home" element={<Home />} />
+        {/* Protected routes with global sidebar */}
+        <Route element={<ProtectedLayout />}>
+          <Route path="/home" element={<Home />} />
+          <Route path="/notes" element={<Notes />} />
+          <Route path="/documents" element={<Documents />} />
+          <Route path="/profile" element={<Profile />} />
+        </Route>
 
-        <Route path="/notes" element={<Notes />} />
-
-        <Route path="/documents" element={<Documents />} />
-
-        {/* Catch-all route redirects back to the landing page */}
+        {/* Catch-all route */}
         <Route path="*" element={<Navigate to="/" replace />} />
-        
       </Routes>
     </BrowserRouter>
   );

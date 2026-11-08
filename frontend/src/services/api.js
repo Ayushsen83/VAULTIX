@@ -6,9 +6,7 @@ const api = axios.create({
     import.meta.env.VITE_API_BASE_URL ||
     "http://localhost:5000/api",
   withCredentials: true,
-  headers: {
-    "Content-Type": "application/json",
-  },
+  
 });
 
 // Attach CSRF token to state-changing requests.

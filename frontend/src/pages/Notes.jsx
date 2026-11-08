@@ -172,7 +172,7 @@ export default function Notes() {
     <div className="notes-layout">
 
       {/* SIDEBAR */}
-      <aside className="notes-sidebar">
+      {/* <aside className="notes-sidebar">
 
         <div className="notes-brand">
           <div className="brand-icon">V</div>
@@ -194,7 +194,7 @@ export default function Notes() {
           <a href="/login">↪ <span>Logout</span></a>
         </div>
 
-      </aside>
+      </aside> */}
 
       {/* MAIN CONTENT */}
       <main className="notes-main">

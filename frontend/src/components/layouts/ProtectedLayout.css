@@ -1,0 +1,17 @@
+
+.protected-layout {
+  min-height: 100vh;
+}
+
+.protected-content {
+  min-height: 100vh;
+  margin-left: 260px;
+  width: calc(100% - 260px);
+}
+
+@media (max-width: 768px) {
+  .protected-content {
+    margin-left: 220px;
+    width: calc(100% - 220px);
+  }
+}
