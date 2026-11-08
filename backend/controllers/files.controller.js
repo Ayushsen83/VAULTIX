@@ -213,7 +213,13 @@ async function createFile(req, res, next) {
         message: "Select a file to upload.",
       });
     }
-
+console.log("UPLOAD DEBUG:", {
+  hasFile: Boolean(file),
+  fileName: file?.originalname,
+  mimeType: file?.mimetype,
+  size: file?.size,
+  userId,
+});
     
 const validation = await validateUploadedFile(file);
 
