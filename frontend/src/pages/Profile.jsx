@@ -1,285 +1,1310 @@
-import { useState } from "react";
+
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useNavigate } from "react-router-dom";
+
+import Sidebar from "../components/sidebar";
+import api, { fetchFreshCsrfToken } from "../services/api";
+
+import "./profile.css";
+
+const INITIAL_PROFILE = {
+  userId: null,
+  name: "",
+  email: "",
+  phoneNumber: "",
+  age: null,
+  createdAt: null,
+  emailVerified: null,
+};
+
+const INITIAL_PASSWORD = {
+  currentPassword: "",
+  newPassword: "",
+  confirmNewPassword: "",
+};
+
+const PASSWORD_FIELDS = [
+  {
+    name: "currentPassword",
+    label: "Current password",
+    autocomplete: "current-password",
+  },
+  {
+    name: "newPassword",
+    label: "New password",
+    autocomplete: "new-password",
+  },
+  {
+    name: "confirmNewPassword",
+    label: "Confirm new password",
+    autocomplete: "new-password",
+  },
+];
+
+const getInitials = (name = "") => {
+  const parts = String(name).trim().split(/\s+/).filter(Boolean);
+
+  return (
+    parts
+      .slice(0, 2)
+      .map((part) => part.charAt(0).toUpperCase())
+      .join("") || "U"
+  );
+};
+
+const formatAccountDate = (date) => {
+  if (!date) return "Not available";
+
+  const parsedDate = new Date(date);
+
+  if (Number.isNaN(parsedDate.getTime())) {
+    return "Not available";
+  }
+
+  return parsedDate.toLocaleDateString("en-GB", {
+    day: "2-digit",
+    month: "long",
+    year: "numeric",
+  });
+};
+
+// The current users controller does not return an email verification field.
+// This remains defensive in case the backend adds one later.
+const getEmailVerificationStatus = (user) => {
+  const fields = [
+    "email_verified",
+    "emailVerified",
+    "is_email_verified",
+    "isEmailVerified",
+  ];
+
+  const field = fields.find((key) =>
+    Object.prototype.hasOwnProperty.call(user, key)
+  );
+
+  if (!field) return null;
+
+  const value = user[field];
+
+  if (
+    value === true ||
+    value === 1 ||
+    value === "true" ||
+    value === "1"
+  ) {
+    return true;
+  }
+
+  if (
+    value === false ||
+    value === 0 ||
+    value === "false" ||
+    value === "0"
+  ) {
+    return false;
+  }
+
+  return null;
+};
+
+const normalizeUser = (user) => ({
+  userId: user.user_id ?? user.id ?? null,
+  name: user.name ?? "",
+  email: user.email ?? "",
+  phoneNumber:
+    user.phonenumber ??
+    user.phone_number ??
+    user.phoneNumber ??
+    "",
+  age: user.age ?? null,
+  createdAt: user.created_at ?? user.createdAt ?? null,
+  emailVerified: getEmailVerificationStatus(user),
+});
+
+const createFormData = (profile) => ({
+  name: profile.name || "",
+  phoneNumber: profile.phoneNumber || "",
+  age: profile.age == null ? "" : String(profile.age),
+});
+
+const getErrorMessage = (error, fallback) => {
+  const status = error.response?.status;
+  const serverMessage = error.response?.data?.message;
+
+  if (status === 401) {
+    return "Your session has expired. Please log in again.";
+  }
+
+  if (status === 403) {
+    return "Your request could not be authorized. Please refresh and try again.";
+  }
+
+  if (status === 404) {
+    return serverMessage || "The requested account information was not found.";
+  }
+
+  if (status === 422 || status === 400) {
+    return serverMessage || "Please check the information you entered.";
+  }
+
+  if (status === 429) {
+    return "Too many requests. Please wait before trying again.";
+  }
+
+  if (status >= 500) {
+    return "The server is temporarily unavailable. Please try again later.";
+  }
+
+  return serverMessage || error.message || fallback;
+};
 
 export default function Profile() {
-  const [profile, setProfile] = useState({
+  const navigate = useNavigate();
+
+  const personalTabRef = useRef(null);
+  const securityTabRef = useRef(null);
+
+  // PROFILE STATE
+  const [profile, setProfile] = useState(INITIAL_PROFILE);
+
+  const [formData, setFormData] = useState({
     name: "",
-    email: "",
     phoneNumber: "",
-    accountCreatedAt: "",
+    age: "",
   });
-  const [formData, setFormData] = useState(profile);
+
+  // PAGE STATE
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [activeTab, setActiveTab] = useState("personal");
+
+  // PROFILE EDIT STATE
   const [isEditing, setIsEditing] = useState(false);
-  const [showChangePassword, setShowChangePassword] = useState(false);
-  const [showLogoutConfirmation, setShowLogoutConfirmation] = useState(false);
-  const [message, setMessage] = useState({ type: "", text: "" });
-  const [formErrors, setFormErrors] = useState({});
-  const [passwordErrors, setPasswordErrors] = useState({});
-  const [passwordData, setPasswordData] = useState({
-    currentPassword: "",
-    newPassword: "",
-    confirmNewPassword: "",
+  const [saving, setSaving] = useState(false);
+  const [fieldErrors, setFieldErrors] = useState({});
+
+  const [message, setMessage] = useState({
+    type: "",
+    text: "",
   });
 
-  const initials =
-    profile.name.trim().split(/\s+/).filter(Boolean).slice(0, 2)
-      .map((part) => part[0].toUpperCase()).join("") || "?";
+  // PASSWORD STATE
+  const [showPasswordForm, setShowPasswordForm] = useState(false);
+  const [changingPassword, setChangingPassword] = useState(false);
 
-  function handleProfileChange(event) {
-    const { name, value } = event.target;
-    setFormData((current) => ({ ...current, [name]: value }));
-  }
+  const [passwordData, setPasswordData] = useState(INITIAL_PASSWORD);
+  const [passwordErrors, setPasswordErrors] = useState({});
 
-  function validateProfile() {
-    const errors = {};
-    if (!formData.name.trim()) errors.name = "Full name is required.";
-    else if (formData.name.trim().length > 100) {
-      errors.name = "Full name must be 100 characters or fewer.";
-    }
+  const [passwordMessage, setPasswordMessage] = useState({
+    type: "",
+    text: "",
+  });
 
-    if (!formData.email.trim()) errors.email = "Email address is required.";
-    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email.trim())) {
-      errors.email = "Enter a valid email address.";
-    }
+  const [showPasswords, setShowPasswords] = useState({
+    currentPassword: false,
+    newPassword: false,
+    confirmNewPassword: false,
+  });
 
-    if (formData.phoneNumber.trim() &&
-        !/^[+()\d\s-]{7,20}$/.test(formData.phoneNumber.trim())) {
-      errors.phoneNumber = "Enter a valid phone number.";
-    }
+  // DERIVED STATE
+  const hasChanges = useMemo(() => {
+    return (
+      formData.name !== profile.name ||
+      formData.phoneNumber !== profile.phoneNumber ||
+      formData.age !==
+        (profile.age == null ? "" : String(profile.age))
+    );
+  }, [formData, profile]);
 
-    setFormErrors(errors);
-    return Object.keys(errors).length === 0;
-  }
+  // FETCH AUTHENTICATED USER PROFILE
+  const fetchProfile = useCallback(
+    async (signal) => {
+      try {
+        setLoading(true);
+        setError("");
 
-  async function handleSaveProfile(event) {
-    event.preventDefault();
+        const response = await api.get("/users/me", { signal });
+
+        const user = response.data?.user;
+
+        if (!response.data?.success || !user) {
+          throw new Error("The server returned an invalid profile response.");
+        }
+
+        const normalizedProfile = normalizeUser(user);
+
+        setProfile(normalizedProfile);
+        setFormData(createFormData(normalizedProfile));
+
+        setIsEditing(false);
+        setFieldErrors({});
+        setMessage({ type: "", text: "" });
+      } catch (requestError) {
+        if (
+          signal?.aborted ||
+          requestError.code === "ERR_CANCELED"
+        ) {
+          return;
+        }
+
+        if (requestError.response?.status === 401) {
+          navigate("/login", { replace: true });
+          return;
+        }
+
+        setError(
+          getErrorMessage(
+            requestError,
+            "Unable to load your profile. Please try again."
+          )
+        );
+      } finally {
+        if (!signal?.aborted) {
+          setLoading(false);
+        }
+      }
+    },
+    [navigate]
+  );
+
+  useEffect(() => {
+    const controller = new AbortController();
+
+    fetchProfile(controller.signal);
+
+    return () => {
+      controller.abort();
+    };
+  }, [fetchProfile]);
+
+  // PROFILE EDITING
+  const handleEditProfile = () => {
+    if (!profile.userId || loading || saving) return;
+
+    setFormData(createFormData(profile));
+    setFieldErrors({});
     setMessage({ type: "", text: "" });
+    setIsEditing(true);
+    setActiveTab("personal");
+  };
+
+  const handleInputChange = (event) => {
+    const { name, value } = event.target;
+
+    setFormData((previous) => ({
+      ...previous,
+      [name]: value,
+    }));
+
+    setFieldErrors((previous) => ({
+      ...previous,
+      [name]: "",
+    }));
+
+    setMessage({ type: "", text: "" });
+  };
+
+  const handlePhoneChange = (event) => {
+    const value = event.target.value.replace(/\D/g, "").slice(0, 10);
+
+    handleInputChange({
+      target: {
+        name: "phoneNumber",
+        value,
+      },
+    });
+  };
+
+  const validateProfile = () => {
+    const errors = {};
+
+    const name = formData.name.trim();
+    const phone = formData.phoneNumber.trim();
+
+    if (!name) {
+      errors.name = "Full name is required.";
+    } else if (name.length > 100) {
+      errors.name = "Name cannot exceed 100 characters.";
+    } else if (!/^[\p{L}\p{M}][\p{L}\p{M}\s.'-]*$/u.test(name)) {
+      errors.name = "Enter a valid full name.";
+    }
+
+    // Optional Indian mobile number: 10 digits beginning with 7, 8 or 9.
+    if (phone && !/^[789]\d{9}$/.test(phone)) {
+      errors.phoneNumber =
+        "Enter a valid 10-digit mobile number starting with 7, 8 or 9.";
+    }
+
+    if (formData.age !== "") {
+      const age = Number(formData.age);
+
+      if (!Number.isInteger(age) || age < 1 || age > 120) {
+        errors.age = "Age must be a whole number between 1 and 120.";
+      }
+    }
+
+    setFieldErrors(errors);
+
+    return Object.keys(errors).length === 0;
+  };
+
+  const handleCancelEdit = () => {
+    if (saving) return;
+
+    setFormData(createFormData(profile));
+    setFieldErrors({});
+    setMessage({ type: "", text: "" });
+    setIsEditing(false);
+  };
+
+  // SAVE PROFILE
+  const handleSaveProfile = async (event) => {
+    event.preventDefault();
+
+    if (saving || !isEditing) return;
+
+    setMessage({ type: "", text: "" });
+
     if (!validateProfile()) return;
 
-    // TODO: Persist permitted fields through your authenticated API.
-    setProfile({
-      ...profile,
+    if (!hasChanges) {
+      setIsEditing(false);
+      setMessage({
+        type: "success",
+        text: "Your profile is already up to date.",
+      });
+      return;
+    }
+
+    // Only fields accepted by the supplied users.controller.js.
+    const payload = {
       name: formData.name.trim(),
-      email: formData.email.trim().toLowerCase(),
-      phoneNumber: formData.phoneNumber.trim(),
-    });
-    setIsEditing(false);
-    setMessage({
-      type: "info",
-      text: "Form validated. Connect this handler to your profile API to save changes.",
-    });
-  }
+      phonenumber: formData.phoneNumber.trim() || null,
+      age: formData.age === "" ? null : Number(formData.age),
+    };
 
-  function handleCancelEditing() {
-    setFormData(profile);
-    setFormErrors({});
-    setIsEditing(false);
-  }
+    try {
+      setSaving(true);
 
-  function handlePasswordChange(event) {
+      const csrfToken = await fetchFreshCsrfToken();
+
+      if (!csrfToken) {
+        throw new Error(
+          "Unable to obtain a security token. Please refresh the page and try again."
+        );
+      }
+
+      const response = await api.patch("/users/me", payload, {
+        headers: {
+          "X-CSRF-Token": csrfToken,
+        },
+      });
+
+      const updatedUser = response.data?.user;
+
+      if (!response.data?.success || !updatedUser) {
+        throw new Error(
+          response.data?.message ||
+            "The server did not return the updated profile."
+        );
+      }
+
+      const updatedProfile = normalizeUser(updatedUser);
+
+      setProfile(updatedProfile);
+      setFormData(createFormData(updatedProfile));
+      setFieldErrors({});
+      setIsEditing(false);
+
+      setMessage({
+        type: "success",
+        text: response.data.message || "Profile updated successfully.",
+      });
+    } catch (requestError) {
+      if (requestError.response?.status === 401) {
+        navigate("/login", { replace: true });
+        return;
+      }
+
+      setMessage({
+        type: "error",
+        text: getErrorMessage(
+          requestError,
+          "Unable to update your profile. Please try again."
+        ),
+      });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  // PASSWORD FORM
+  const handlePasswordChange = (event) => {
     const { name, value } = event.target;
-    setPasswordData((current) => ({ ...current, [name]: value }));
-  }
 
-  async function handleChangePassword(event) {
-    event.preventDefault();
+    setPasswordData((previous) => ({
+      ...previous,
+      [name]: value,
+    }));
+
+    setPasswordErrors((previous) => ({
+      ...previous,
+      [name]: "",
+    }));
+
+    setPasswordMessage({ type: "", text: "" });
+  };
+
+  const togglePasswordVisibility = (field) => {
+    setShowPasswords((previous) => ({
+      ...previous,
+      [field]: !previous[field],
+    }));
+  };
+
+  const resetPasswordForm = () => {
+    setPasswordData(INITIAL_PASSWORD);
+    setPasswordErrors({});
+    setPasswordMessage({ type: "", text: "" });
+
+    setShowPasswords({
+      currentPassword: false,
+      newPassword: false,
+      confirmNewPassword: false,
+    });
+
+    setShowPasswordForm(false);
+  };
+
+  const validatePasswordForm = () => {
     const errors = {};
+
     if (!passwordData.currentPassword) {
-      errors.currentPassword = "Enter your current password.";
+      errors.currentPassword = "Current password is required.";
     }
-    if (passwordData.newPassword.length < 12) {
-      errors.newPassword = "New password must contain at least 12 characters.";
-    } else if (passwordData.newPassword.length > 128) {
-      errors.newPassword = "New password must contain no more than 128 characters.";
+
+    if (!passwordData.newPassword) {
+      errors.newPassword = "New password is required.";
+    } else if (
+      passwordData.newPassword.length < 12 ||
+      passwordData.newPassword.length > 128
+    ) {
+      errors.newPassword = "Password must contain 12–128 characters.";
     }
-    if (passwordData.newPassword !== passwordData.confirmNewPassword) {
+
+    if (!passwordData.confirmNewPassword) {
+      errors.confirmNewPassword = "Please confirm your new password.";
+    } else if (
+      passwordData.newPassword !== passwordData.confirmNewPassword
+    ) {
       errors.confirmNewPassword = "Passwords do not match.";
     }
-    if (passwordData.currentPassword &&
-        passwordData.currentPassword === passwordData.newPassword) {
-      errors.newPassword = "Choose a password different from your current password.";
+
+    if (
+      passwordData.currentPassword &&
+      passwordData.newPassword &&
+      passwordData.currentPassword === passwordData.newPassword
+    ) {
+      errors.newPassword =
+        "Your new password must differ from your current password.";
     }
 
     setPasswordErrors(errors);
-    if (Object.keys(errors).length) return;
 
-    // TODO: Send currentPassword and newPassword to the backend over HTTPS.
-    setMessage({
-      type: "info",
-      text: "Password form validated. Connect this handler to your password-change API.",
-    });
-  }
+    return Object.keys(errors).length === 0;
+  };
 
-  function cancelPasswordChange() {
-    setPasswordData({
-      currentPassword: "",
-      newPassword: "",
-      confirmNewPassword: "",
-    });
-    setPasswordErrors({});
-    setShowChangePassword(false);
-  }
+  // CHANGE PASSWORD
+  const handleChangePassword = async (event) => {
+    event.preventDefault();
 
-  function handleForgotPassword() {
-    // TODO: Navigate to or call your password-reset workflow.
-    setMessage({ type: "info", text: "Connect this action to your password-reset workflow." });
-  }
+    if (changingPassword) return;
 
-  async function handleLogout() {
-    // TODO: Call the backend logout endpoint to clear the HttpOnly cookie,
-    // clear client-side user state, and navigate to the login page.
-    setShowLogoutConfirmation(false);
-    setMessage({ type: "info", text: "Connect this action to your backend logout endpoint." });
-  }
+    setPasswordMessage({ type: "", text: "" });
 
+    if (!validatePasswordForm()) return;
+
+    try {
+      setChangingPassword(true);
+
+      const csrfToken = await fetchFreshCsrfToken();
+
+      if (!csrfToken) {
+        throw new Error(
+          "Unable to obtain a security token. Please refresh the page and try again."
+        );
+      }
+
+      const response = await api.patch(
+        "/users/me/password",
+        {
+          currentPassword: passwordData.currentPassword,
+          newPassword: passwordData.newPassword,
+        },
+        {
+          headers: {
+            "X-CSRF-Token": csrfToken,
+          },
+        }
+      );
+
+      if (!response.data?.success) {
+        throw new Error(
+          response.data?.message || "Password update failed."
+        );
+      }
+
+      // Backend increments token_version and requires a fresh login.
+      const successMessage =
+        response.data.message ||
+        "Password changed successfully. Please log in again.";
+
+      setPasswordData(INITIAL_PASSWORD);
+      setPasswordErrors({});
+      setShowPasswordForm(false);
+
+      navigate("/login", {
+        replace: true,
+        state: {
+          message: successMessage,
+        },
+      });
+    } catch (requestError) {
+      if (requestError.response?.status === 401) {
+        navigate("/login", { replace: true });
+        return;
+      }
+
+      setPasswordMessage({
+        type: "error",
+        text: getErrorMessage(
+          requestError,
+          "Unable to change your password. Please try again."
+        ),
+      });
+    } finally {
+      setChangingPassword(false);
+    }
+  };
+
+  // TABS
+  const handleTabChange = (tab) => {
+    if (saving || changingPassword) return false;
+
+    if (tab !== "personal" && tab !== "security") return false;
+
+    if (activeTab === tab) return true;
+
+    if (isEditing && hasChanges) {
+      const discardChanges = window.confirm(
+        "You have unsaved changes. Do you want to discard them?"
+      );
+
+      if (!discardChanges) return false;
+    }
+
+    if (isEditing) {
+      setFormData(createFormData(profile));
+      setFieldErrors({});
+      setMessage({ type: "", text: "" });
+      setIsEditing(false);
+    }
+
+    if (tab !== "security" && showPasswordForm) {
+      resetPasswordForm();
+    }
+
+    setActiveTab(tab);
+    return true;
+  };
+
+  const handleTabKeyDown = (event) => {
+    if (event.key !== "ArrowRight" && event.key !== "ArrowLeft") {
+      return;
+    }
+
+    event.preventDefault();
+
+    const nextTab = activeTab === "personal" ? "security" : "personal";
+
+    const changed = handleTabChange(nextTab);
+
+    // Move focus only when the tab change was accepted.
+    if (!changed) return;
+
+    if (nextTab === "personal") {
+      personalTabRef.current?.focus();
+    } else {
+      securityTabRef.current?.focus();
+    }
+  };
+
+  // EMAIL VERIFICATION STATUS
+  const renderEmailStatus = () => {
+    if (profile.emailVerified === true) {
+      return (
+        <span className="email-status verified">
+          <span aria-hidden="true">✓</span>
+          Verified
+        </span>
+      );
+    }
+
+    if (profile.emailVerified === false) {
+      return (
+        <span className="email-status unverified">
+          <span aria-hidden="true">!</span>
+          Not verified
+        </span>
+      );
+    }
+
+    return (
+      <span className="email-status unavailable">
+        Status unavailable
+      </span>
+    );
+  };
+
+  // PAGE UI
   return (
-    <main>
-      <header>
-        <h1>Profile</h1>
-        <p>Manage your personal information and account security.</p>
-      </header>
+    <div className="profile-layout">
+      <Sidebar />
 
-      {message.text && (
-        <div role="status" aria-live="polite" data-message-type={message.type}>
-          {message.text}
-        </div>
-      )}
-
-      <section aria-labelledby="profile-summary-heading">
-        <h2 id="profile-summary-heading">Profile information</h2>
-        <div>
-          <div aria-label="Profile avatar initials">{initials}</div>
-          <p>{profile.name || "Your name"}</p>
-          <p>{profile.email || "Your registered email"}</p>
-        </div>
-
-        {!isEditing ? (
-          <>
-            <dl>
-              <div><dt>Full name</dt><dd>{profile.name || "Not provided"}</dd></div>
-              <div><dt>Registered email</dt><dd>{profile.email || "Not provided"}</dd></div>
-              <div><dt>Phone number</dt><dd>{profile.phoneNumber || "Not provided"}</dd></div>
-              <div><dt>Account created</dt><dd>{profile.accountCreatedAt || "Not available"}</dd></div>
-            </dl>
-            <button type="button" onClick={() => {
-              setFormData(profile);
-              setIsEditing(true);
-              setMessage({ type: "", text: "" });
-            }}>
-              Edit profile
-            </button>
-          </>
-        ) : (
-          <form onSubmit={handleSaveProfile} noValidate>
+      <div className="profile-main">
+        <main className="profile-content">
+          {/* PAGE HEADING */}
+          <div className="profile-page-heading">
             <div>
-              <label htmlFor="profile-name">Full name</label>
-              <input id="profile-name" name="name" type="text" autoComplete="name"
-                value={formData.name} onChange={handleProfileChange} maxLength={100}
-                required aria-invalid={Boolean(formErrors.name)} />
-              {formErrors.name && <p role="alert">{formErrors.name}</p>}
+              <span className="profile-eyebrow">
+                ACCOUNT MANAGEMENT
+              </span>
+
+              <h1>My Profile</h1>
+
+              <p>
+                Manage your personal information and keep your
+                VAULTIX account secure.
+              </p>
             </div>
-
-            <div>
-              <label htmlFor="profile-email">Email address</label>
-              <input id="profile-email" name="email" type="email" autoComplete="email"
-                value={formData.email} onChange={handleProfileChange} maxLength={255}
-                required aria-invalid={Boolean(formErrors.email)} />
-              {formErrors.email && <p role="alert">{formErrors.email}</p>}
-            </div>
-
-            <div>
-              <label htmlFor="profile-phone">Phone number</label>
-              <input id="profile-phone" name="phoneNumber" type="tel" autoComplete="tel"
-                value={formData.phoneNumber} onChange={handleProfileChange} maxLength={20}
-                aria-invalid={Boolean(formErrors.phoneNumber)} />
-              {formErrors.phoneNumber && <p role="alert">{formErrors.phoneNumber}</p>}
-            </div>
-
-            <p>Email changes may require a separate verification workflow.</p>
-            <button type="submit">Save changes</button>
-            <button type="button" onClick={handleCancelEditing}>Cancel</button>
-          </form>
-        )}
-      </section>
-
-      <section aria-labelledby="password-heading">
-        <h2 id="password-heading">Password</h2>
-        <p>Change your password or start the password recovery process.</p>
-
-        {!showChangePassword ? (
-          <button type="button" onClick={() => {
-            setShowChangePassword(true);
-            setMessage({ type: "", text: "" });
-          }}>
-            Change password
-          </button>
-        ) : (
-          <form onSubmit={handleChangePassword} noValidate>
-            <div>
-              <label htmlFor="current-password">Current password</label>
-              <input id="current-password" name="currentPassword" type="password"
-                autoComplete="current-password" value={passwordData.currentPassword}
-                onChange={handlePasswordChange} required
-                aria-invalid={Boolean(passwordErrors.currentPassword)} />
-              {passwordErrors.currentPassword && <p role="alert">{passwordErrors.currentPassword}</p>}
-            </div>
-
-            <div>
-              <label htmlFor="new-password">New password</label>
-              <input id="new-password" name="newPassword" type="password"
-                autoComplete="new-password" value={passwordData.newPassword}
-                onChange={handlePasswordChange} minLength={12} maxLength={128} required
-                aria-invalid={Boolean(passwordErrors.newPassword)} />
-              {passwordErrors.newPassword && <p role="alert">{passwordErrors.newPassword}</p>}
-            </div>
-
-            <div>
-              <label htmlFor="confirm-new-password">Confirm new password</label>
-              <input id="confirm-new-password" name="confirmNewPassword" type="password"
-                autoComplete="new-password" value={passwordData.confirmNewPassword}
-                onChange={handlePasswordChange} minLength={12} maxLength={128} required
-                aria-invalid={Boolean(passwordErrors.confirmNewPassword)} />
-              {passwordErrors.confirmNewPassword && <p role="alert">{passwordErrors.confirmNewPassword}</p>}
-            </div>
-
-            <button type="submit">Update password</button>
-            <button type="button" onClick={cancelPasswordChange}>Cancel</button>
-          </form>
-        )}
-
-        <button type="button" onClick={handleForgotPassword}>Forgot password?</button>
-      </section>
-
-      <section aria-labelledby="security-heading">
-        <h2 id="security-heading">Account security</h2>
-        <dl>
-          <div>
-            <dt>Two-factor authentication</dt>
-            <dd>Check your account security settings for the current status.</dd>
           </div>
-          <div>
-            <dt>Session security</dt>
-            <dd>Authentication is managed by the server using a secure session cookie.</dd>
-          </div>
-        </dl>
-        {/* TODO: Fetch actual 2FA status and session details from the API. */}
-      </section>
 
-      <section aria-labelledby="logout-heading">
-        <h2 id="logout-heading">Sign out</h2>
-        <p>Sign out of your VAULTIX account on this device.</p>
-        <button type="button" onClick={() => setShowLogoutConfirmation(true)}>Logout</button>
+          {/* PROFILE HEADER */}
+          {!loading && !error && profile.userId && (
+            <section
+              className="profile-header"
+              aria-label="Account summary"
+            >
+              <div
+                className="profile-header-initials"
+                aria-label={`Profile initials: ${getInitials(profile.name)}`}
+              >
+                {getInitials(profile.name)}
+              </div>
 
-        {showLogoutConfirmation && (
-          <div role="dialog" aria-modal="true"
-            aria-labelledby="logout-confirmation-heading"
-            aria-describedby="logout-confirmation-description">
-            <h3 id="logout-confirmation-heading">Confirm logout</h3>
-            <p id="logout-confirmation-description">Are you sure you want to log out?</p>
-            <button type="button" onClick={handleLogout}>Yes, log out</button>
-            <button type="button" onClick={() => setShowLogoutConfirmation(false)}>Cancel</button>
-          </div>
-        )}
-      </section>
-    </main>
+              <div className="profile-header-info">
+                <h2>{profile.name || "User"}</h2>
+
+                <p className="profile-user-email">
+                  {profile.email || "Email not available"}
+                </p>
+
+                <div className="profile-header-meta">
+                  <span className="profile-account-label">
+                    <span className="status-dot" aria-hidden="true" />
+                    Active account
+                  </span>
+
+                  <span className="profile-created-date">
+                    Member since {formatAccountDate(profile.createdAt)}
+                  </span>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                className="profile-edit-button"
+                onClick={handleEditProfile}
+                disabled={saving || isEditing}
+              >
+                <span aria-hidden="true">✎</span>
+                {isEditing ? "Editing Profile" : "Edit Profile"}
+              </button>
+            </section>
+          )}
+
+          {/* LOADING STATE */}
+          {loading && (
+            <div
+              className="profile-state"
+              role="status"
+              aria-live="polite"
+            >
+              <span className="profile-spinner" aria-hidden="true" />
+              Loading your account...
+            </div>
+          )}
+
+          {/* ERROR STATE */}
+          {!loading && error && (
+            <div className="profile-error" role="alert">
+              <div>
+                <strong>Unable to load profile</strong>
+                <p>{error}</p>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => fetchProfile()}
+                disabled={loading}
+              >
+                Try Again
+              </button>
+            </div>
+          )}
+
+          {/* PROFILE CONTENT */}
+          {!loading && !error && profile.userId && (
+            <>
+              {/* TABS */}
+              <div
+                className="profile-tabs"
+                role="tablist"
+                aria-label="Profile sections"
+                onKeyDown={handleTabKeyDown}
+              >
+                <button
+                  ref={personalTabRef}
+                  id="personal-tab"
+                  type="button"
+                  role="tab"
+                  aria-selected={activeTab === "personal"}
+                  aria-controls="profile-panel"
+                  tabIndex={activeTab === "personal" ? 0 : -1}
+                  className={`profile-tab ${
+                    activeTab === "personal" ? "active" : ""
+                  }`}
+                  onClick={() => handleTabChange("personal")}
+                  disabled={saving || changingPassword}
+                >
+                  <span aria-hidden="true">♙</span>
+                  Personal Information
+                </button>
+
+                <button
+                  ref={securityTabRef}
+                  id="security-tab"
+                  type="button"
+                  role="tab"
+                  aria-selected={activeTab === "security"}
+                  aria-controls="profile-panel"
+                  tabIndex={activeTab === "security" ? 0 : -1}
+                  className={`profile-tab ${
+                    activeTab === "security" ? "active" : ""
+                  }`}
+                  onClick={() => handleTabChange("security")}
+                  disabled={saving || changingPassword}
+                >
+                  <span aria-hidden="true">◇</span>
+                  Account Security
+                </button>
+              </div>
+
+              {/* TAB PANEL */}
+              <section
+                id="profile-panel"
+                className="profile-panel"
+                role="tabpanel"
+                aria-labelledby={`${activeTab}-tab`}
+                tabIndex={0}
+              >
+                {/* PERSONAL INFORMATION */}
+                {activeTab === "personal" && (
+                  <div className="personal-information-section">
+                    <div className="section-heading">
+                      <div>
+                        <span className="section-eyebrow">
+                          YOUR ACCOUNT
+                        </span>
+
+                        <h2>Personal Information</h2>
+
+                        <p>
+                          Your personal details associated with
+                          your VAULTIX account.
+                        </p>
+                      </div>
+
+                      <div
+                        className="section-heading-icon"
+                        aria-hidden="true"
+                      >
+                        ♙
+                      </div>
+                    </div>
+
+                    <form
+                      className="personal-information-form"
+                      onSubmit={handleSaveProfile}
+                      noValidate
+                    >
+                      <div className="personal-information-grid">
+                        {/* FULL NAME */}
+                        <div className="personal-information-field">
+                          {isEditing ? (
+                            <>
+                              <label htmlFor="profile-name">
+                                Full Name{" "}
+                                <span className="required-mark">*</span>
+                              </label>
+
+                              <input
+                                id="profile-name"
+                                name="name"
+                                type="text"
+                                value={formData.name}
+                                onChange={handleInputChange}
+                                maxLength={100}
+                                autoComplete="name"
+                                placeholder="Enter your full name"
+                                disabled={saving}
+                                aria-invalid={Boolean(fieldErrors.name)}
+                                aria-describedby={
+                                  fieldErrors.name
+                                    ? "name-error"
+                                    : undefined
+                                }
+                              />
+
+                              {fieldErrors.name && (
+                                <span
+                                  id="name-error"
+                                  className="profile-field-error"
+                                  role="alert"
+                                >
+                                  {fieldErrors.name}
+                                </span>
+                              )}
+                            </>
+                          ) : (
+                            <>
+                              <div className="profile-field-label">
+                                Full Name
+                              </div>
+
+                              <div className="profile-readonly-value">
+                                {profile.name || "Not provided"}
+                              </div>
+                            </>
+                          )}
+                        </div>
+
+                        {/* EMAIL ADDRESS */}
+                        <div className="personal-information-field">
+                          <label htmlFor="profile-email">
+                            Email Address
+                          </label>
+
+                          <input
+                            id="profile-email"
+                            type="email"
+                            value={profile.email}
+                            readOnly
+                            aria-readonly="true"
+                            className="profile-email-readonly"
+                          />
+
+                          <span className="profile-readonly-hint">
+                            Your registered email cannot be changed here.
+                          </span>
+                        </div>
+
+                        {/* PHONE NUMBER */}
+                        <div className="personal-information-field">
+                          {isEditing ? (
+                            <>
+                              <label htmlFor="profile-phone">
+                                Phone Number
+                              </label>
+
+                              <input
+                                id="profile-phone"
+                                name="phoneNumber"
+                                type="tel"
+                                inputMode="numeric"
+                                pattern="[789][0-9]{9}"
+                                value={formData.phoneNumber}
+                                onChange={handlePhoneChange}
+                                maxLength={10}
+                                autoComplete="tel"
+                                placeholder="Enter 10-digit mobile number"
+                                disabled={saving}
+                                aria-invalid={Boolean(
+                                  fieldErrors.phoneNumber
+                                )}
+                                aria-describedby={
+                                  fieldErrors.phoneNumber
+                                    ? "phone-error"
+                                    : undefined
+                                }
+                              />
+
+                              {fieldErrors.phoneNumber && (
+                                <span
+                                  id="phone-error"
+                                  className="profile-field-error"
+                                  role="alert"
+                                >
+                                  {fieldErrors.phoneNumber}
+                                </span>
+                              )}
+                            </>
+                          ) : (
+                            <>
+                              <div className="profile-field-label">
+                                Phone Number
+                              </div>
+
+                              <div className="profile-readonly-value">
+                                {profile.phoneNumber || "Not provided"}
+                              </div>
+                            </>
+                          )}
+                        </div>
+
+                        {/* AGE */}
+                        <div className="personal-information-field">
+                          {isEditing ? (
+                            <>
+                              <label htmlFor="profile-age">
+                                Age
+                              </label>
+
+                              <input
+                                id="profile-age"
+                                name="age"
+                                type="number"
+                                min="1"
+                                max="120"
+                                step="1"
+                                value={formData.age}
+                                onChange={handleInputChange}
+                                placeholder="Enter age"
+                                disabled={saving}
+                                aria-invalid={Boolean(fieldErrors.age)}
+                                aria-describedby={
+                                  fieldErrors.age
+                                    ? "age-error"
+                                    : undefined
+                                }
+                              />
+
+                              {fieldErrors.age && (
+                                <span
+                                  id="age-error"
+                                  className="profile-field-error"
+                                  role="alert"
+                                >
+                                  {fieldErrors.age}
+                                </span>
+                              )}
+                            </>
+                          ) : (
+                            <>
+                              <div className="profile-field-label">
+                                Age
+                              </div>
+
+                              <div className="profile-readonly-value">
+                                {profile.age != null
+                                  ? `${profile.age} years`
+                                  : "Not provided"}
+                              </div>
+                            </>
+                          )}
+                        </div>
+
+                        {/* ACCOUNT CREATED */}
+                        <div className="personal-information-field">
+                          <div className="profile-field-label">
+                            Account Created
+                          </div>
+
+                          <div className="profile-readonly-value">
+                            {formatAccountDate(profile.createdAt)}
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* PROFILE FEEDBACK */}
+                      {message.text && (
+                        <div
+                          className={`profile-feedback ${message.type}`}
+                          role={
+                            message.type === "error" ? "alert" : "status"
+                          }
+                          aria-live="polite"
+                        >
+                          {message.text}
+                        </div>
+                      )}
+
+                      {/* EDIT ACTIONS */}
+                      {isEditing && (
+                        <div className="profile-form-actions">
+                          <button
+                            type="button"
+                            className="profile-cancel-button"
+                            onClick={handleCancelEdit}
+                            disabled={saving}
+                          >
+                            Cancel
+                          </button>
+
+                          <button
+                            type="submit"
+                            className="profile-save-button"
+                            disabled={saving || !hasChanges}
+                          >
+                            {saving ? "Saving..." : "Save Changes"}
+                          </button>
+                        </div>
+                      )}
+                    </form>
+                  </div>
+                )}
+
+                {/* ACCOUNT SECURITY */}
+                {activeTab === "security" && (
+                  <div className="account-security-section">
+                    <div className="section-heading">
+                      <div>
+                        <span className="section-eyebrow">
+                          PROTECT YOUR ACCOUNT
+                        </span>
+
+                        <h2>Account Security</h2>
+
+                        <p>
+                          Manage your password and check your email
+                          verification status.
+                        </p>
+                      </div>
+
+                      <div
+                        className="section-heading-icon"
+                        aria-hidden="true"
+                      >
+                        ◈
+                      </div>
+                    </div>
+
+                    {/* PASSWORD MANAGEMENT */}
+                    <div className="security-group-label">
+                      PASSWORD MANAGEMENT
+                    </div>
+
+                    <div className="security-option-card">
+                      <div className="security-option-icon password-icon">
+                        <span aria-hidden="true">⌑</span>
+                      </div>
+
+                      <div className="security-option-details">
+                        <h3>Change Password</h3>
+
+                        <p>
+                          Update your password to help keep your
+                          account protected.
+                        </p>
+                      </div>
+
+                      <button
+                        type="button"
+                        className="security-option-action"
+                        onClick={() => {
+                          if (showPasswordForm) {
+                            resetPasswordForm();
+                          } else {
+                            setShowPasswordForm(true);
+                            setPasswordErrors({});
+                            setPasswordMessage({ type: "", text: "" });
+                          }
+                        }}
+                        disabled={changingPassword}
+                        aria-expanded={showPasswordForm}
+                        aria-controls="change-password-form"
+                      >
+                        {showPasswordForm ? "Close" : "Change"}
+                        <span aria-hidden="true">
+                          {showPasswordForm ? "−" : "+"}
+                        </span>
+                      </button>
+                    </div>
+
+                    {/* CHANGE PASSWORD FORM */}
+                    {showPasswordForm && (
+                      <form
+                        id="change-password-form"
+                        className="change-password-form"
+                        onSubmit={handleChangePassword}
+                        noValidate
+                      >
+                        <div className="change-password-heading">
+                          <h3>Update Your Password</h3>
+
+                          <p>
+                            Enter your current password and choose
+                            a strong new password.
+                          </p>
+                        </div>
+
+                        {PASSWORD_FIELDS.map((field) => (
+                          <div
+                            className="password-field"
+                            key={field.name}
+                          >
+                            <label htmlFor={field.name}>
+                              {field.label}
+                            </label>
+
+                            <div className="password-input-wrapper">
+                              <input
+                                id={field.name}
+                                name={field.name}
+                                type={
+                                  showPasswords[field.name]
+                                    ? "text"
+                                    : "password"
+                                }
+                                value={passwordData[field.name]}
+                                onChange={handlePasswordChange}
+                                autoComplete={field.autocomplete}
+                                maxLength={128}
+                                minLength={
+                                  field.name === "newPassword" ? 12 : undefined
+                                }
+                                disabled={changingPassword}
+                                aria-invalid={Boolean(
+                                  passwordErrors[field.name]
+                                )}
+                                aria-describedby={
+                                  passwordErrors[field.name]
+                                    ? `${field.name}-error`
+                                    : field.name === "newPassword"
+                                      ? "password-requirements"
+                                      : undefined
+                                }
+                              />
+
+                              <button
+                                type="button"
+                                className="password-visibility-button"
+                                onClick={() =>
+                                  togglePasswordVisibility(field.name)
+                                }
+                                disabled={changingPassword}
+                                aria-label={
+                                  showPasswords[field.name]
+                                    ? `Hide ${field.label}`
+                                    : `Show ${field.label}`
+                                }
+                              >
+                                {showPasswords[field.name] ? "Hide" : "Show"}
+                              </button>
+                            </div>
+
+                            {field.name === "newPassword" && (
+                              <span
+                                id="password-requirements"
+                                className="password-requirements"
+                              >
+                                Use 12–128 characters.
+                              </span>
+                            )}
+
+                            {passwordErrors[field.name] && (
+                              <span
+                                id={`${field.name}-error`}
+                                className="password-field-error"
+                                role="alert"
+                              >
+                                {passwordErrors[field.name]}
+                              </span>
+                            )}
+                          </div>
+                        ))}
+
+                        {passwordMessage.text && (
+                          <div
+                            className={`password-feedback ${passwordMessage.type}`}
+                            role={
+                              passwordMessage.type === "error"
+                                ? "alert"
+                                : "status"
+                            }
+                            aria-live="polite"
+                          >
+                            {passwordMessage.text}
+                          </div>
+                        )}
+
+                        <div className="password-form-actions">
+                          <button
+                            type="button"
+                            className="password-cancel-button"
+                            onClick={resetPasswordForm}
+                            disabled={changingPassword}
+                          >
+                            Cancel
+                          </button>
+
+                          <button
+                            type="submit"
+                            className="password-submit-button"
+                            disabled={changingPassword}
+                          >
+                            {changingPassword
+                              ? "Updating Password..."
+                              : "Update Password"}
+                          </button>
+                        </div>
+                      </form>
+                    )}
+
+                    {/* EMAIL SECURITY */}
+                    <div className="security-group-label email-group-label">
+                      EMAIL SECURITY
+                    </div>
+
+                    <div className="security-option-card email-security-card">
+                      <div className="security-option-icon email-icon">
+                        <span aria-hidden="true">✉</span>
+                      </div>
+
+                      <div className="security-option-details">
+                        <h3>Email Verification</h3>
+
+                        <p>
+                          Check the verification status of the email
+                          address associated with your VAULTIX account.
+                        </p>
+
+                        <div className="security-email-address">
+                          {profile.email || "Email not available"}
+                        </div>
+                      </div>
+
+                      <div className="email-verification-row">
+                        {renderEmailStatus()}
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </section>
+            </>
+          )}
+        </main>
+      </div>
+    </div>
   );
 }
