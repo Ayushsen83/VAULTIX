@@ -1,7 +1,7 @@
 const { doubleCsrf } = require("csrf-csrf");
 
 const csrfSecret = process.env.CSRF_SECRET;
-const isProduction = process.env.NODE_ENV === "production";
+const isProduction = process.env.NODE_ENV ;
 
 if (!csrfSecret || Buffer.byteLength(csrfSecret, "utf8") < 32) {
   throw new Error("CSRF_SECRET must contain at least 32 bytes.");

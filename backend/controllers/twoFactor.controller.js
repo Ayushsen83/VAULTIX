@@ -303,7 +303,7 @@ const verifyTwoFactorLogin = async (req, res, next) => {
     res.cookie("vaultix_token", accessToken, {
       httpOnly: true,
       secure: isProduction,
-      sameSite: "none",
+      sameSite: isProduction ? "none" : "lax",
       path: "/",
       maxAge: 170 * 60 * 1000,
     });
