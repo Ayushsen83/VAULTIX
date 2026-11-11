@@ -5,6 +5,8 @@ import api, { fetchFreshCsrfToken } from "../services/api";
 import Sidebar from "../components/sidebar";
 import "./Home.css";
 
+import HomeSkeleton from "../components/skeletons/HomeSkeleton";
+
 export default function Home() {
   const navigate = useNavigate();
   const fileInputRef = useRef(null);
@@ -431,19 +433,12 @@ export default function Home() {
     }
   };
 
-  // Initial loading screen.
-  if (isLoading && !user) {
-    return (
-      <main className="home-loading">
-        <div
-          className="home-spinner"
-          role="status"
-          aria-label="Loading dashboard"
-        />
-        <p>Securing your digital locker...</p>
-      </main>
-    );
-  }
+ 
+
+// Initial dashboard skeleton.
+if (isLoading && !user) {
+  return <HomeSkeleton />;
+}
 
   // Account verification failed.
   if (!user) {
@@ -463,6 +458,9 @@ export default function Home() {
   }
 
   return (
+
+    
+
     <div className="dashboard-layout">
       <Sidebar />
 
