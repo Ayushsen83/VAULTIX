@@ -54,22 +54,47 @@ const registerUser = async (req, res, next) => {
     }
 
     // 4. Validate optional phone number
-    let phone = null;
+   let phone = null;
 
-    if (phonenumber !== undefined && phonenumber !== null) {
-      if (
-        typeof phonenumber !== "string" ||
-        phonenumber.trim().length > 20
-      ) {
-        return res.status(400).json({
-          success: false,
-          message: "Invalid phone number.",
-        });
-      }
+if (phonenumber !== undefined && phonenumber !== null) {
+  if (typeof phonenumber !== "string") {
+    return res.status(400).json({
+      success: false,
+      message: "Invalid phone number.",
+    });
+  }
 
-      phone = phonenumber.trim() || null;
-    }
+  phone = phonenumber.trim();
 
+  // Allow only 10-digit Indian mobile numbers
+  if (phone && !/^[6-9]\d{9}$/.test(phone)) {
+    return res.status(400).json({
+      success: false,
+      message: "Please enter a valid 10-digit mobile number.",
+    });
+  }
+
+  // Empty phone numbers are stored as NULL
+  phone = phone || null;
+}
+
+// Check whether mobile number is already registered
+if (phone) {
+  const existingPhone = await pool.query(
+    `SELECT user_id
+     FROM users
+     WHERE phonenumber = $1
+     LIMIT 1`,
+    [phone]
+  );
+
+  if (existingPhone.rowCount > 0) {
+    return res.status(409).json({
+      success: false,
+      message: "This mobile number is already registered.",
+    });
+  }
+}
     // 5. Validate optional age
     let userAge = null;
 
@@ -165,16 +190,28 @@ const registerUser = async (req, res, next) => {
       user,
     });
   } catch (error) {
-    if (error.code === "23505") {
+  if (error.code === "23505") {
+    if (error.constraint === "unique_user_phonenumber") {
+      return res.status(409).json({
+        success: false,
+        message: "This mobile number is already registered.",
+      });
+    }
+
+    if (
+      error.constraint === "users_email_key" ||
+      error.constraint === "users_email_unique"
+    ) {
       return res.status(409).json({
         success: false,
         message: "An account with this email already exists.",
       });
     }
-
-    console.error("Registration error:", error.message);
-    return next(error);
   }
+
+  console.error("Registration error:", error.message);
+  return next(error);
+}
 };
 
 module.exports = { registerUser };
