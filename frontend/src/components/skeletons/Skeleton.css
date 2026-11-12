@@ -1,4 +1,3 @@
-
 /* =========================================
    VAULTIX - COMMON SKELETON STYLING
 ========================================= */
@@ -59,8 +58,6 @@
     animation: none;
   }
 }
-
-
 
 /* ==========================================
    VAULTIX - NOTES SKELETON
@@ -180,6 +177,127 @@
 @media (prefers-reduced-motion: reduce) {
   .notes-skeleton-block,
   .notes-count-skeleton {
+    animation: none;
+  }
+}
+
+/* ==========================================
+   VAULTIX - DOCUMENTS SKELETON
+========================================== */
+
+/* Keep the original document card dimensions */
+.document-skeleton-card {
+  pointer-events: none;
+  cursor: default;
+  transition: none;
+}
+
+.document-skeleton-card:hover {
+  transform: none;
+  box-shadow: none;
+}
+
+/* File icon placeholder: actual icon is 48 x 48 */
+.document-skeleton-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+}
+
+/* File type placeholder */
+.document-type-placeholder {
+  width: 42px;
+  height: 10px;
+  border-radius: 20px;
+}
+
+/* File name placeholder */
+.document-name-placeholder {
+  width: 75%;
+  height: 15px;
+  border-radius: 4px;
+}
+
+/* Preserve the actual h3 bottom spacing */
+.document-skeleton-card .document-file-name {
+  margin-bottom: 17px;
+}
+
+/* File size and date placeholders */
+.document-skeleton-details {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+}
+
+.document-size-placeholder {
+  width: 55px;
+  height: 10px;
+}
+
+.document-date-placeholder {
+  width: 75px;
+  height: 10px;
+}
+
+/* Preserve actual action row layout */
+.document-skeleton-card .document-card-actions {
+  display: flex;
+  gap: 7px;
+  margin-top: 15px;
+}
+
+.document-action-placeholder {
+  flex: 1;
+  min-width: 0;
+  height: 29px;
+  border-radius: 7px;
+}
+
+/* ==========================================
+   STORAGE SKELETONS
+========================================== */
+
+/* Total storage used */
+.documents-storage-value-skeleton {
+  display: inline-block;
+  width: 75px;
+  height: 21px;
+  vertical-align: middle;
+}
+
+/* Progress bar placeholder */
+.storage-progress .documents-progress-skeleton {
+  display: block;
+  width: 100%;
+  height: 100%;
+  background-color: #dededb;
+  border-radius: 20px;
+}
+
+/* Usage percentage */
+.documents-usage-skeleton {
+  display: inline-block;
+  width: 55px;
+  height: 12px;
+  vertical-align: middle;
+}
+
+/* Total documents count */
+.documents-count-skeleton {
+  display: inline-block;
+  width: 28px;
+  height: 21px;
+  vertical-align: middle;
+}
+
+/* Reduced motion accessibility */
+@media (prefers-reduced-motion: reduce) {
+  .document-skeleton-card .skeleton-block::after,
+  .documents-storage-value-skeleton::after,
+  .documents-usage-skeleton::after,
+  .documents-count-skeleton::after {
     animation: none;
   }
 }
