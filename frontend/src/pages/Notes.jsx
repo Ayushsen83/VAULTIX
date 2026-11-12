@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from "react";
 import api, { refreshCsrfToken } from "../services/api";
 import "./Notes.css";
@@ -25,9 +24,7 @@ export default function Notes() {
     const token = await refreshCsrfToken();
 
     if (!token) {
-      throw new Error(
-        "Could not obtain a security token. Please try again."
-      );
+      throw new Error("Could not obtain a security token. Please try again.");
     }
 
     return token;
@@ -52,13 +49,11 @@ export default function Notes() {
       console.error("Fetch notes error:", err);
 
       if (err.response?.status === 401) {
-        setError(
-          "Your session is missing or expired. Please log in again."
-        );
+        setError("Your session is missing or expired. Please log in again.");
       } else {
         setError(
           err.response?.data?.message ||
-          "Unable to load notes. Please try again."
+            "Unable to load notes. Please try again.",
         );
       }
     } finally {
@@ -124,8 +119,8 @@ export default function Notes() {
 
       alert(
         err.response?.data?.message ||
-        err.message ||
-        "Something went wrong while saving your note."
+          err.message ||
+          "Something went wrong while saving your note.",
       );
     } finally {
       setSaving(false);
@@ -135,7 +130,7 @@ export default function Notes() {
   // Delete note
   const deleteNote = async (id) => {
     const confirmed = window.confirm(
-      "Are you sure you want to delete this note?"
+      "Are you sure you want to delete this note?",
     );
 
     if (!confirmed) return;
@@ -150,9 +145,7 @@ export default function Notes() {
       console.error("Delete note error:", err);
 
       alert(
-        err.response?.data?.message ||
-        err.message ||
-        "Unable to delete note."
+        err.response?.data?.message || err.message || "Unable to delete note.",
       );
     }
   };
@@ -170,7 +163,6 @@ export default function Notes() {
 
   return (
     <div className="notes-layout">
-
       {/* SIDEBAR */}
       {/* <aside className="notes-sidebar">
 
@@ -198,9 +190,7 @@ export default function Notes() {
 
       {/* MAIN CONTENT */}
       <main className="notes-main">
-
         <header className="notes-header">
-
           <div className="notes-search">
             <span>⌕</span>
 
@@ -213,7 +203,6 @@ export default function Notes() {
           </div>
 
           <div className="notes-header-actions">
-
             <span className="notes-date">
               {new Date().toLocaleDateString("en-IN", {
                 day: "2-digit",
@@ -223,50 +212,40 @@ export default function Notes() {
             </span>
 
             <div className="notes-avatar">V</div>
-
           </div>
-
         </header>
 
         {/* PAGE TITLE */}
         <section className="notes-heading">
-
           <div>
-            <span className="notes-eyebrow">
-              YOUR PERSONAL SPACE
-            </span>
+            <span className="notes-eyebrow">YOUR PERSONAL SPACE</span>
 
-            <h1>My Notes<span>.</span></h1>
+            <h1>
+              My Notes<span>.</span>
+            </h1>
 
-            <p>
-              Save your thoughts, ideas and important points.
-            </p>
+            <p>Save your thoughts, ideas and important points.</p>
           </div>
 
-          <button
-            className="new-note-btn"
-            onClick={openNewNote}
-          >
+          <button className="new-note-btn" onClick={openNewNote}>
             + New Note
           </button>
-
         </section>
 
         {/* NOTE INFORMATION */}
         <section className="notes-info">
-
           <div>
-             {loading ? (
+            {loading ? (
               <span
-                 className="notes-count-skeleton"
-                  aria-label="Loading total notes"
-                />
-             ) : (
-    <strong>{notes.length}</strong>
-  )}
+                className="notes-count-skeleton"
+                aria-label="Loading total notes"
+              />
+            ) : (
+              <strong>{notes.length}</strong>
+            )}
 
-  <span> Total Notes</span>
-</div>
+            <span> Total Notes</span>
+          </div>
 
           <div>
             <label htmlFor="notes-sort">Sort by: </label>
@@ -276,65 +255,40 @@ export default function Notes() {
               value={sort}
               onChange={(e) => setSort(e.target.value)}
             >
-              <option value="updated_at">
-                Recently Updated
-              </option>
+              <option value="updated_at">Recently Updated</option>
 
-              <option value="created_at">
-                Recently Created
-              </option>
+              <option value="created_at">Recently Created</option>
             </select>
           </div>
-
         </section>
 
         {/* NOTES GRID */}
-      {loading ? (
-
-            <NotesSkeleton count={Math.max(notes.length, 3)} />
-
-                ) : error ? (
-
+        {loading ? (
+          <NotesSkeleton count={Math.max(notes.length, 3)} />
+        ) : error ? (
           <div className="notes-message notes-error">
             {error}
 
-            <button onClick={fetchNotes}>
-              Try Again
-            </button>
+            <button onClick={fetchNotes}>Try Again</button>
           </div>
-
         ) : notes.length === 0 ? (
-
           <div className="notes-empty">
-
             <div className="empty-icon">✎</div>
 
             <h2>No notes found</h2>
 
-            <p>
-              Your ideas deserve a safe place.
-              Create your first note!
-            </p>
+            <p>Your ideas deserve a safe place. Create your first note!</p>
 
-            <button onClick={openNewNote}>
-              + Create Your First Note
-            </button>
-
+            <button onClick={openNewNote}>+ Create Your First Note</button>
           </div>
-
         ) : (
-
           <section className="notes-grid">
-
             {notes.map((note, index) => (
-
               <article
                 className={`note-card ${colors[index % colors.length]}`}
                 key={note.id}
               >
-
                 <div className="note-card-top">
-
                   <span className="note-date">
                     {formatDate(note.updated_at)}
                   </span>
@@ -346,7 +300,6 @@ export default function Notes() {
                   >
                     ✎
                   </button>
-
                 </div>
 
                 <h3>{note.title}</h3>
@@ -356,64 +309,36 @@ export default function Notes() {
                 </p>
 
                 <div className="note-card-bottom">
-
-                  <span>
-                    Created {formatDate(note.created_at)}
-                  </span>
+                  <span>Created {formatDate(note.created_at)}</span>
 
                   <div>
-
-                    <button
-                      onClick={() => openEditNote(note)}
-                      title="Edit"
-                    >
+                    <button onClick={() => openEditNote(note)} title="Edit">
                       Edit
                     </button>
 
-                    <button
-                      onClick={() => deleteNote(note.id)}
-                      title="Delete"
-                    >
+                    <button onClick={() => deleteNote(note.id)} title="Delete">
                       Delete
                     </button>
-
                   </div>
-
                 </div>
-
               </article>
-
             ))}
-
           </section>
-
         )}
-
       </main>
 
       {/* CREATE / EDIT MODAL */}
       {showEditor && (
-
         <div
           className="note-modal-overlay"
           onClick={() => setShowEditor(false)}
         >
-
-          <div
-            className="note-modal"
-            onClick={(e) => e.stopPropagation()}
-          >
-
+          <div className="note-modal" onClick={(e) => e.stopPropagation()}>
             <div className="modal-heading">
-
               <div>
                 <span>YOUR PERSONAL SPACE</span>
 
-                <h2>
-                  {editingNote
-                    ? "Edit Note"
-                    : "Create New Note"}
-                </h2>
+                <h2>{editingNote ? "Edit Note" : "Create New Note"}</h2>
               </div>
 
               <button
@@ -422,11 +347,9 @@ export default function Notes() {
               >
                 ×
               </button>
-
             </div>
 
             <form onSubmit={saveNote}>
-
               <label>Note Title</label>
 
               <input
@@ -448,7 +371,6 @@ export default function Notes() {
               />
 
               <div className="modal-footer">
-
                 <button
                   type="button"
                   className="cancel-btn"
@@ -457,28 +379,18 @@ export default function Notes() {
                   Cancel
                 </button>
 
-                <button
-                  type="submit"
-                  className="save-btn"
-                  disabled={saving}
-                >
+                <button type="submit" className="save-btn" disabled={saving}>
                   {saving
                     ? "Saving..."
                     : editingNote
-                    ? "Update Note"
-                    : "Save Note"}
+                      ? "Update Note"
+                      : "Save Note"}
                 </button>
-
               </div>
-
             </form>
-
           </div>
-
         </div>
-
       )}
-
     </div>
   );
 }

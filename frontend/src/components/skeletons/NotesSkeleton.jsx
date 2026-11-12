@@ -1,13 +1,9 @@
-
 import React from "react";
 import "./Skeleton.css";
 
 function NoteSkeletonCard() {
   return (
-    <article
-      className="note-card note-skeleton-card"
-      aria-hidden="true"
-    >
+    <article className="note-card note-skeleton-card" aria-hidden="true">
       {/* Updated date and edit icon */}
       <div className="note-card-top">
         <span className="notes-skeleton-block skeleton-date" />
@@ -40,11 +36,7 @@ function NoteSkeletonCard() {
 
 export default function NotesSkeleton({ count = 3 }) {
   return (
-    <section
-      className="notes-grid"
-      aria-label="Loading notes"
-      aria-busy="true"
-    >
+    <section className="notes-grid" aria-label="Loading notes" aria-busy="true">
       {Array.from({ length: count }, (_, index) => (
         <NoteSkeletonCard key={index} />
       ))}
