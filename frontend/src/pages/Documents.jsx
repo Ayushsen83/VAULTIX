@@ -1,6 +1,6 @@
-
 import React, { useEffect, useRef, useState } from "react";
 import api, { refreshCsrfToken } from "../services/api";
+import DocumentsSkeleton from "../components/skeletons/DocumentsSkeleton";
 import "./Documents.css";
 
 export default function Documents() {
@@ -20,9 +20,7 @@ export default function Documents() {
     const token = await refreshCsrfToken();
 
     if (!token) {
-      throw new Error(
-        "Could not obtain a security token. Please try again."
-      );
+      throw new Error("Could not obtain a security token. Please try again.");
     }
 
     return token;
@@ -52,7 +50,7 @@ export default function Documents() {
 
       setError(
         err.response?.data?.message ||
-          "Unable to load documents. Please try again."
+          "Unable to load documents. Please try again.",
       );
     } finally {
       setLoading(false);
@@ -102,25 +100,20 @@ export default function Documents() {
 
     // Validate file extension
     if (!allowed.includes(extension)) {
-      setUploadError(
-        "Only PDF, MP3, WAV and M4A files are allowed."
-      );
+      setUploadError("Only PDF, MP3, WAV and M4A files are allowed.");
 
       event.target.value = "";
       return;
     }
 
     // Validate file size
-    const maxSize =
-      extension === "pdf"
-        ? 50 * 1024 * 1024
-        : 10 * 1024 * 1024;
+    const maxSize = extension === "pdf" ? 50 * 1024 * 1024 : 10 * 1024 * 1024;
 
     if (file.size > maxSize) {
       setUploadError(
         extension === "pdf"
           ? "PDF file must be smaller than 50 MB."
-          : "Audio file must be smaller than 10 MB."
+          : "Audio file must be smaller than 10 MB.",
       );
 
       event.target.value = "";
@@ -142,14 +135,13 @@ export default function Documents() {
 
       // Refresh document list
       await fetchFiles();
-
     } catch (err) {
       console.error("Upload document error:", err);
 
       setUploadError(
         err.response?.data?.message ||
           err.message ||
-          "Unable to upload document. Please try again."
+          "Unable to upload document. Please try again.",
       );
     } finally {
       setUploading(false);
@@ -160,7 +152,7 @@ export default function Documents() {
   // Delete document
   const handleDelete = async (file) => {
     const confirmed = window.confirm(
-      `Are you sure you want to delete "${file.file_name}"?`
+      `Are you sure you want to delete "${file.file_name}"?`,
     );
 
     if (!confirmed) return;
@@ -174,14 +166,13 @@ export default function Documents() {
 
       // Refresh document list
       await fetchFiles();
-
     } catch (err) {
       console.error("Delete document error:", err);
 
       alert(
         err.response?.data?.message ||
           err.message ||
-          "Unable to delete document."
+          "Unable to delete document.",
       );
     }
   };
@@ -189,10 +180,9 @@ export default function Documents() {
   // Preview document
   const handlePreview = async (file) => {
     try {
-      const response = await api.get(
-        `/files/${file.id}/preview`,
-        { responseType: "blob" }
-      );
+      const response = await api.get(`/files/${file.id}/preview`, {
+        responseType: "blob",
+      });
 
       const blobUrl = URL.createObjectURL(response.data);
       const newWindow = window.open(blobUrl, "_blank");
@@ -200,32 +190,25 @@ export default function Documents() {
       if (!newWindow) {
         URL.revokeObjectURL(blobUrl);
 
-        alert(
-          "Please allow pop-ups to preview this document."
-        );
+        alert("Please allow pop-ups to preview this document.");
       } else {
         setTimeout(() => {
           URL.revokeObjectURL(blobUrl);
         }, 60000);
       }
-
     } catch (err) {
       console.error("Preview document error:", err);
 
-      alert(
-        err.response?.data?.message ||
-          "Unable to preview this document."
-      );
+      alert(err.response?.data?.message || "Unable to preview this document.");
     }
   };
 
   // Download document
   const handleDownload = async (file) => {
     try {
-      const response = await api.get(
-        `/files/${file.id}/download`,
-        { responseType: "blob" }
-      );
+      const response = await api.get(`/files/${file.id}/download`, {
+        responseType: "blob",
+      });
 
       const url = URL.createObjectURL(response.data);
       const link = document.createElement("a");
@@ -240,39 +223,31 @@ export default function Documents() {
       setTimeout(() => {
         URL.revokeObjectURL(url);
       }, 1000);
-
     } catch (err) {
       console.error("Download document error:", err);
 
-      alert(
-        err.response?.data?.message ||
-          "Unable to download document."
-      );
+      alert(err.response?.data?.message || "Unable to download document.");
     }
   };
 
   // Calculate total storage usage
   const totalUsed = files.reduce(
-    (total, file) =>
-      total + Number(file.size_bytes || 0),
-    0
+    (total, file) => total + Number(file.size_bytes || 0),
+    0,
   );
 
   // Calculate storage percentage
   const usagePercentage = Math.min(
     (totalUsed / (100 * 1024 * 1024)) * 100,
-    100
+    100,
   );
 
   return (
     <div className="documents-layout">
-
       {/* MAIN CONTENT */}
       <main className="documents-main">
-
         {/* HEADER */}
         <header className="documents-header">
-
           <div className="documents-search">
             <span>⌕</span>
 
@@ -285,7 +260,6 @@ export default function Documents() {
           </div>
 
           <div className="documents-header-actions">
-
             <span>
               {new Date().toLocaleDateString("en-IN", {
                 day: "2-digit",
@@ -295,26 +269,19 @@ export default function Documents() {
             </span>
 
             <div className="documents-avatar">V</div>
-
           </div>
-
         </header>
 
         {/* PAGE HEADING */}
         <section className="documents-heading">
-
           <div>
-            <span className="documents-eyebrow">
-              YOUR SECURE STORAGE
-            </span>
+            <span className="documents-eyebrow">YOUR SECURE STORAGE</span>
 
             <h1>
               My Documents<span>.</span>
             </h1>
 
-            <p>
-              All your important files, safely stored in one place.
-            </p>
+            <p>All your important files, safely stored in one place.</p>
           </div>
 
           <button
@@ -322,9 +289,7 @@ export default function Documents() {
             onClick={() => inputRef.current?.click()}
             disabled={uploading}
           >
-            {uploading
-              ? "Uploading..."
-              : "+ Upload Document"}
+            {uploading ? "Uploading..." : "+ Upload Document"}
           </button>
 
           <input
@@ -334,7 +299,6 @@ export default function Documents() {
             accept=".pdf,.mp3,.wav,.m4a"
             onChange={handleUpload}
           />
-
         </section>
 
         {/* UPLOAD ERROR */}
@@ -342,56 +306,60 @@ export default function Documents() {
           <div className="documents-upload-error">
             {uploadError}
 
-            <button
-              onClick={() => setUploadError("")}
-            >
-              ×
-            </button>
+            <button onClick={() => setUploadError("")}>×</button>
           </div>
         )}
 
         {/* STORAGE INFORMATION */}
         <section className="documents-storage">
-
           <div>
             <span>YOUR STORAGE</span>
 
             <h3>
-              {formatSize(totalUsed)}
+              {loading ? (
+                <span className="skeleton-block documents-storage-value-skeleton" />
+              ) : (
+                formatSize(totalUsed)
+              )}
               <small> of 100 MB used</small>
             </h3>
           </div>
 
           <div className="storage-progress">
-            <div
-              style={{
-                width: `${usagePercentage}%`,
-              }}
-            />
+            {loading ? (
+              <div className="skeleton-block documents-progress-skeleton" />
+            ) : (
+              <div
+                style={{
+                  width: `${usagePercentage}%`,
+                }}
+              />
+            )}
           </div>
 
           <span className="storage-percentage">
-            {usagePercentage.toFixed(1)}% used
+            {loading ? (
+              <span className="skeleton-block documents-usage-skeleton" />
+            ) : (
+              `${usagePercentage.toFixed(1)}% used`
+            )}
           </span>
-
         </section>
 
         {/* DOCUMENT INFORMATION AND FILTERS */}
         <section className="documents-info">
-
           <div>
-            <strong>
-              {pagination.total ?? files.length}
-            </strong>
+            {loading ? (
+              <span className="skeleton-block documents-count-skeleton" />
+            ) : (
+              <strong>{pagination.total ?? files.length}</strong>
+            )}
 
             <span> Total Documents</span>
           </div>
 
           <div className="documents-filters">
-
-            <label htmlFor="file-type">
-              Type:
-            </label>
+            <label htmlFor="file-type">Type:</label>
 
             <select
               id="file-type"
@@ -403,9 +371,7 @@ export default function Documents() {
               <option value="audio">Audio</option>
             </select>
 
-            <label htmlFor="file-sort">
-              Sort:
-            </label>
+            <label htmlFor="file-sort">Sort:</label>
 
             <select
               id="file-sort"
@@ -416,109 +382,61 @@ export default function Documents() {
               <option value="file_name">Name</option>
               <option value="size_bytes">Size</option>
             </select>
-
           </div>
-
         </section>
 
         {/* DOCUMENT LIST */}
         {loading ? (
-
-          <div className="documents-message">
-            Loading your documents...
-          </div>
-
+          <DocumentsSkeleton count={Math.max(files.length, 3)} />
         ) : error ? (
-
           <div className="documents-message documents-error">
-
             {error}
 
-            <button onClick={fetchFiles}>
-              Try Again
-            </button>
-
+            <button onClick={fetchFiles}>Try Again</button>
           </div>
-
         ) : files.length === 0 ? (
-
           <div className="documents-empty">
-
-            <div className="documents-empty-icon">
-              ▤
-            </div>
+            <div className="documents-empty-icon">▤</div>
 
             <h2>No documents found</h2>
 
             <p>
-              Your important files deserve a secure home.
-              Upload your first document!
+              Your important files deserve a secure home. Upload your first
+              document!
             </p>
 
-            <button
-              onClick={() => inputRef.current?.click()}
-            >
+            <button onClick={() => inputRef.current?.click()}>
               + Upload Your First Document
             </button>
-
           </div>
-
         ) : (
-
           <section className="documents-grid">
-
             {files.map((file) => (
-
-              <article
-                className="document-card"
-                key={file.id}
-              >
-
+              <article className="document-card" key={file.id}>
                 <div className="document-card-top">
-
                   <div
                     className={`document-file-icon ${getFileType(file).toLowerCase()}`}
                   >
-                    {getFileType(file) === "PDF"
-                      ? "PDF"
-                      : "♫"}
+                    {getFileType(file) === "PDF" ? "PDF" : "♫"}
                   </div>
 
                   <span className="document-file-type">
                     {getFileType(file)}
                   </span>
-
                 </div>
 
-                <h3 className="document-file-name">
-                  {file.file_name}
-                </h3>
+                <h3 className="document-file-name">{file.file_name}</h3>
 
                 <div className="document-file-details">
+                  <span>{formatSize(file.size_bytes)}</span>
 
-                  <span>
-                    {formatSize(file.size_bytes)}
-                  </span>
-
-                  <span>
-                    {formatDate(file.created_at)}
-                  </span>
-
+                  <span>{formatDate(file.created_at)}</span>
                 </div>
 
                 <div className="document-card-actions">
+                  <button onClick={() => handlePreview(file)}>Preview</button>
 
-                  <button
-                    onClick={() => handlePreview(file)}
-                  >
-                    Preview
-                  </button>
-
-                  <button
-                    onClick={() => handleDownload(file)}
-                  >
-                    Download
-                  </button>
+                  <button onClick={() => handleDownload(file)}>Download</button>
 
                   <button
                     className="document-delete-btn"
@@ -526,19 +444,12 @@ export default function Documents() {
                   >
                     Delete
                   </button>
-
                 </div>
-
               </article>
-
             ))}
-
           </section>
-
         )}
-
       </main>
-
     </div>
   );
 }
