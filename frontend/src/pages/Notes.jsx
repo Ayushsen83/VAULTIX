@@ -2,7 +2,7 @@
 import React, { useEffect, useState } from "react";
 import api, { refreshCsrfToken } from "../services/api";
 import "./Notes.css";
-
+import NotesSkeleton from "../components/skeletons/NotesSkeleton";
 const colors = ["yellow", "pink", "blue", "green", "purple"];
 
 export default function Notes() {
@@ -256,9 +256,17 @@ export default function Notes() {
         <section className="notes-info">
 
           <div>
-            <strong>{notes.length}</strong>
-            <span> Total Notes</span>
-          </div>
+             {loading ? (
+              <span
+                 className="notes-count-skeleton"
+                  aria-label="Loading total notes"
+                />
+             ) : (
+    <strong>{notes.length}</strong>
+  )}
+
+  <span> Total Notes</span>
+</div>
 
           <div>
             <label htmlFor="notes-sort">Sort by: </label>
@@ -281,13 +289,11 @@ export default function Notes() {
         </section>
 
         {/* NOTES GRID */}
-        {loading ? (
+      {loading ? (
 
-          <div className="notes-message">
-            Loading your notes...
-          </div>
+            <NotesSkeleton count={Math.max(notes.length, 3)} />
 
-        ) : error ? (
+                ) : error ? (
 
           <div className="notes-message notes-error">
             {error}
