@@ -1,3 +1,5 @@
+
+
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import api from "../services/api";
@@ -13,14 +15,14 @@ export default function Header({
   const navigate = useNavigate();
   const [accountName, setAccountName] = useState(userName);
 
-  // Keep the avatar updated when the parent receives the user profile.
+  // Keep avatar updated when parent receives user profile.
   useEffect(() => {
     if (userName) {
       setAccountName(userName);
     }
   }, [userName]);
 
-  // Fetch the authenticated user's name on pages that don't provide it.
+  // Fetch authenticated user's name when not provided.
   useEffect(() => {
     if (userName) return;
 
@@ -57,6 +59,7 @@ export default function Header({
 
   return (
     <header className="header">
+
       {showSearch && (
         <div className="header-search">
           <span className="header-search-icon" aria-hidden="true">
@@ -67,21 +70,52 @@ export default function Header({
             type="search"
             placeholder={searchPlaceholder}
             value={searchValue}
-            onChange={(event) => onSearchChange?.(event.target.value)}
+            onChange={(event) =>
+              onSearchChange?.(event.target.value)
+            }
             aria-label={searchPlaceholder}
           />
         </div>
       )}
 
-      <button
-        type="button"
-        className="header-avatar"
-        onClick={() => navigate("/profile")}
-        aria-label={`Open profile for ${accountName || "user"}`}
-        title="View profile"
-      >
-        {initial}
-      </button>
+      <div className="header-actions">
+
+        {/* Notification Icon */}
+        <span
+          className="header-notification"
+          role="img"
+          aria-label="Notifications"
+          title="Notifications"
+        >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="22"
+            height="22"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.8"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            aria-hidden="true"
+          >
+            <path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9" />
+            <path d="M10 21h4" />
+          </svg>
+        </span>
+
+        {/* Profile Avatar */}
+        <button
+          type="button"
+          className="header-avatar"
+          onClick={() => navigate("/profile")}
+          aria-label={`Open profile for ${accountName || "user"}`}
+          title="View profile"
+        >
+          {initial}
+        </button>
+
+      </div>
     </header>
   );
 }
