@@ -1,4 +1,3 @@
-
 import React, { useEffect, useRef, useState } from "react";
 import api, { refreshCsrfToken } from "../services/api";
 import "./Documents.css";
@@ -12,6 +11,9 @@ export default function Documents() {
   const [error, setError] = useState("");
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState("");
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [uploadFileName, setUploadFileName] = useState("");
+  const [uploadStatus, setUploadStatus] = useState("");
   const [pagination, setPagination] = useState({});
   const inputRef = useRef(null);
 
@@ -89,7 +91,7 @@ export default function Documents() {
     return file.mime_type === "application/pdf" ? "PDF" : "AUDIO";
   };
 
-  // Upload document
+  // Upload document with progress
   const handleUpload = async (event) => {
     const file = event.target.files?.[0];
 
@@ -129,6 +131,9 @@ export default function Documents() {
 
     try {
       setUploading(true);
+      setUploadProgress(0);
+      setUploadFileName(file.name);
+      setUploadStatus("Preparing upload...");
 
       // Prepare multipart form data
       const formData = new FormData();
@@ -137,20 +142,55 @@ export default function Documents() {
       // Get fresh CSRF token
       await requireCsrfToken();
 
-      // Upload document
-      await api.post("/files", formData);
+      setUploadStatus("Uploading...");
+
+      // Upload document and track actual progress
+      await api.post("/files", formData, {
+        onUploadProgress: (progressEvent) => {
+          if (progressEvent.total) {
+            const percent = Math.round(
+              (progressEvent.loaded * 100) / progressEvent.total
+            );
+
+            setUploadProgress(percent);
+            setUploadStatus(
+              percent >= 100 ? "Finishing upload..." : "Uploading..."
+            );
+          }
+        },
+      });
+
+      setUploadProgress(100);
+      setUploadStatus("Upload completed");
 
       // Refresh document list
       await fetchFiles();
 
+      // Keep success popup visible briefly
+      setTimeout(() => {
+        setUploadStatus("");
+        setUploadProgress(0);
+        setUploadFileName("");
+      }, 2500);
+
     } catch (err) {
       console.error("Upload document error:", err);
+
+      setUploadStatus("Upload failed");
 
       setUploadError(
         err.response?.data?.message ||
           err.message ||
           "Unable to upload document. Please try again."
       );
+
+      // Keep failed popup visible briefly
+      setTimeout(() => {
+        setUploadStatus("");
+        setUploadProgress(0);
+        setUploadFileName("");
+      }, 3000);
+
     } finally {
       setUploading(false);
       event.target.value = "";
@@ -166,13 +206,10 @@ export default function Documents() {
     if (!confirmed) return;
 
     try {
-      // Get fresh CSRF token
       await requireCsrfToken();
 
-      // Delete document
       await api.delete(`/files/${file.id}`);
 
-      // Refresh document list
       await fetchFiles();
 
     } catch (err) {
@@ -267,7 +304,6 @@ export default function Documents() {
   return (
     <div className="documents-layout">
 
-      {/* MAIN CONTENT */}
       <main className="documents-main">
 
         {/* HEADER */}
@@ -308,9 +344,7 @@ export default function Documents() {
               YOUR SECURE STORAGE
             </span>
 
-            <h1>
-              My Documents<span>.</span>
-            </h1>
+            <h1>My Documents</h1>
 
             <p>
               All your important files, safely stored in one place.
@@ -322,9 +356,7 @@ export default function Documents() {
             onClick={() => inputRef.current?.click()}
             disabled={uploading}
           >
-            {uploading
-              ? "Uploading..."
-              : "+ Upload Document"}
+            {uploading ? "Uploading..." : "+ Upload Document"}
           </button>
 
           <input
@@ -337,14 +369,80 @@ export default function Documents() {
 
         </section>
 
+        {/* UPLOAD PROGRESS POPUP */}
+        {uploadStatus && (
+          <div
+            style={{
+              position: "fixed",
+              right: "25px",
+              bottom: "25px",
+              width: "320px",
+              maxWidth: "calc(100vw - 40px)",
+              padding: "18px",
+              backgroundColor: "#ffffff",
+              borderRadius: "14px",
+              boxShadow: "0 8px 30px rgba(0,0,0,0.16)",
+              border: "1px solid #e8e1d7",
+              zIndex: 9999,
+            }}
+          >
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                gap: "10px",
+                marginBottom: "10px",
+                color: "#202c26",
+              }}
+            >
+              <strong>{uploadStatus}</strong>
+
+              <strong>{uploadProgress}%</strong>
+            </div>
+
+            <p
+              style={{
+                margin: "0 0 12px",
+                fontSize: "13px",
+                color: "#777",
+                overflowWrap: "anywhere",
+              }}
+            >
+              {uploadFileName}
+            </p>
+
+            <div
+              style={{
+                width: "100%",
+                height: "7px",
+                backgroundColor: "#eee9e1",
+                borderRadius: "10px",
+                overflow: "hidden",
+              }}
+            >
+              <div
+                style={{
+                  width: `${uploadProgress}%`,
+                  height: "100%",
+                  backgroundColor:
+                    uploadStatus === "Upload failed"
+                      ? "#c0392b"
+                      : "#c98262",
+                  borderRadius: "10px",
+                  transition: "width 0.2s ease",
+                }}
+              />
+            </div>
+          </div>
+        )}
+
         {/* UPLOAD ERROR */}
         {uploadError && (
           <div className="documents-upload-error">
             {uploadError}
 
-            <button
-              onClick={() => setUploadError("")}
-            >
+            <button onClick={() => setUploadError("")}>
               ×
             </button>
           </div>
@@ -479,9 +577,7 @@ export default function Documents() {
                   <div
                     className={`document-file-icon ${getFileType(file).toLowerCase()}`}
                   >
-                    {getFileType(file) === "PDF"
-                      ? "PDF"
-                      : "♫"}
+                    {getFileType(file) === "PDF" ? "PDF" : "♫"}
                   </div>
 
                   <span className="document-file-type">
