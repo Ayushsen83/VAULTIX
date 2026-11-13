@@ -1,7 +1,7 @@
 
-import Sidebar from "../components/sidebar";
+import Sidebar from "../sidebar";
 import Skeleton from "./Skeleton";
-import "./HomeSkeleton.css";
+import "./Skeleton.css";
 
 export default function HomeSkeleton() {
   return (
