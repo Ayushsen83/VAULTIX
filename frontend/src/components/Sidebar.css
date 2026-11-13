@@ -1,4 +1,4 @@
-
+/* 
 .app-sidebar {
   width: 260px;
   min-width: 260px;
@@ -104,4 +104,530 @@
     width: 220px;
     min-width: 220px;
   }
+} */
+
+
+
+/* =========================================
+   VAULTIX SIDEBAR - BASE
+========================================= */
+
+.app-sidebar,
+.app-sidebar * {
+  box-sizing: border-box;
+}
+
+.app-sidebar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 1200;
+
+  display: flex;
+  flex-direction: column;
+
+  width: 260px;
+  min-width: 260px;
+  height: 100vh;
+  height: 100dvh;
+
+  padding: 25px 15px 18px;
+
+  overflow-x: hidden;
+  overflow-y: auto;
+
+  color: #f8f7f5;
+  background: #1c1c1c;
+
+  border-right: 1px solid rgba(255, 255, 255, 0.08);
+
+  transition:
+    width 0.25s ease,
+    min-width 0.25s ease,
+    transform 0.25s ease;
+}
+
+/* =========================================
+   BRAND SECTION
+========================================= */
+
+.sidebar-brand {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  gap: 10px;
+  min-height: 50px;
+
+  margin-bottom: 30px;
+  padding: 0 4px;
+}
+
+.sidebar-brand-content {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+
+  min-width: 0;
+}
+
+.sidebar-brand-icon {
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+
+  width: 42px;
+  height: 42px;
+
+  color: #ffffff;
+  background: #b96d50;
+
+  border-radius: 11px;
+
+  font-size: 23px;
+  font-weight: 750;
+}
+
+.sidebar-brand-text {
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+.sidebar-brand-text h2 {
+  margin: 0;
+
+  color: #ffffff;
+
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: 1.3px;
+}
+
+.sidebar-brand-text span {
+  display: block;
+  margin-top: 4px;
+
+  color: #aaa29c;
+
+  font-size: 11px;
+}
+
+/* =========================================
+   TOGGLE BUTTONS
+========================================= */
+
+.sidebar-toggle {
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+
+  width: 36px;
+  height: 36px;
+
+  padding: 0;
+
+  color: #d5d0cc;
+  background: transparent;
+
+  border: 1px solid transparent;
+  border-radius: 8px;
+
+  cursor: pointer;
+
+  transition:
+    background 0.2s ease,
+    color 0.2s ease;
+}
+
+.sidebar-toggle:hover {
+  color: #ffffff;
+  background: rgba(255, 255, 255, 0.09);
+}
+
+.mobile-toggle {
+  display: none;
+}
+
+/* Three-line hamburger */
+
+.sidebar-menu-icon {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+
+  gap: 5px;
+
+  width: 20px;
+  height: 20px;
+}
+
+.sidebar-menu-icon span {
+  display: block;
+
+  width: 20px;
+  height: 2px;
+
+  background: currentColor;
+  border-radius: 3px;
+
+  transition:
+    transform 0.2s ease,
+    opacity 0.2s ease;
+}
+
+/* Close icon */
+
+.sidebar-menu-icon.is-close span:first-child {
+  transform: translateY(7px) rotate(45deg);
+}
+
+.sidebar-menu-icon.is-close span:nth-child(2) {
+  opacity: 0;
+}
+
+.sidebar-menu-icon.is-close span:last-child {
+  transform: translateY(-7px) rotate(-45deg);
+}
+
+/* =========================================
+   NAVIGATION
+========================================= */
+
+.sidebar-navigation {
+  display: flex;
+  flex-direction: column;
+
+  gap: 8px;
+  width: 100%;
+}
+
+/* Navigation links */
+
+.sidebar-link,
+.sidebar-logout {
+  display: flex;
+  align-items: center;
+
+  gap: 13px;
+
+  width: 100%;
+  min-height: 46px;
+
+  padding: 0 13px;
+
+  color: #c7c0bb;
+  background: transparent;
+
+  border: 0;
+  border-radius: 9px;
+
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 500;
+
+  text-align: left;
+  text-decoration: none;
+  white-space: nowrap;
+
+  cursor: pointer;
+
+  transition:
+    color 0.2s ease,
+    background 0.2s ease;
+}
+
+/* Custom SVG icon wrapper */
+
+.sidebar-link-icon {
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+
+  width: 22px;
+  height: 22px;
+
+  font-size: 0;
+  line-height: 1;
+}
+
+/* SVG icons */
+
+.sidebar-link-icon svg {
+  display: block;
+
+  width: 21px;
+  height: 21px;
+}
+
+/* Navigation text */
+
+.sidebar-link-text {
+  min-width: 0;
+
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Hover */
+
+.sidebar-link:hover,
+.sidebar-logout:hover:not(:disabled) {
+  color: #ffffff;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+/* Active navigation - Terracotta */
+
+.sidebar-link.active {
+  color: #ffffff;
+  background: #a85f43;
+
+  font-weight: 600;
+}
+
+.sidebar-link.active:hover {
+  background: #b96d50;
+}
+
+/* =========================================
+   LOGOUT SECTION
+========================================= */
+
+.sidebar-bottom {
+  margin-top: auto;
+  padding-top: 17px;
+
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.sidebar-logout {
+  color: #e6a08d;
+}
+
+.sidebar-logout:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* =========================================
+   DESKTOP COLLAPSED SIDEBAR
+========================================= */
+
+.app-sidebar.is-collapsed {
+  width: 78px;
+  min-width: 78px;
+
+  padding-right: 12px;
+  padding-left: 12px;
+}
+
+/* Brand alignment when collapsed */
+
+.app-sidebar.is-collapsed .sidebar-brand {
+  flex-direction: column;
+  justify-content: center;
+
+  gap: 12px;
+  padding: 0;
+}
+
+.app-sidebar.is-collapsed .sidebar-brand-content {
+  justify-content: center;
+}
+
+/* Hide text when collapsed */
+
+.app-sidebar.is-collapsed .sidebar-brand-text,
+.app-sidebar.is-collapsed .sidebar-link-text {
+  display: none;
+}
+
+/* Center icons */
+
+.app-sidebar.is-collapsed .sidebar-link,
+.app-sidebar.is-collapsed .sidebar-logout {
+  justify-content: center;
+
+  gap: 0;
+  padding: 0;
+}
+
+/* =========================================
+   MOBILE MENU TRIGGER
+========================================= */
+
+.mobile-menu-trigger {
+  display: none;
+}
+
+/* =========================================
+   MOBILE BACKDROP
+========================================= */
+
+.sidebar-backdrop {
+  display: none;
+}
+
+/* =========================================
+   TABLET AND MOBILE
+========================================= */
+
+@media (max-width: 1024px) {
+
+  /* Sidebar becomes a hidden drawer */
+
+  .app-sidebar,
+  .app-sidebar.is-collapsed {
+    width: min(280px, 86vw);
+    min-width: 0;
+
+    height: 100vh;
+    height: 100dvh;
+
+    padding: 22px 16px 18px;
+
+    transform: translateX(-100%);
+    visibility: hidden;
+
+    box-shadow: none;
+  }
+
+  /* Open drawer */
+
+  .app-sidebar.is-mobile-open {
+    transform: translateX(0);
+    visibility: visible;
+
+    box-shadow: 12px 0 35px rgba(0, 0, 0, 0.25);
+  }
+
+  /* Restore full brand */
+
+  .app-sidebar.is-collapsed .sidebar-brand {
+    flex-direction: row;
+    justify-content: space-between;
+
+    gap: 8px;
+    margin-bottom: 30px;
+  }
+
+  .app-sidebar.is-collapsed .sidebar-brand-content {
+    justify-content: flex-start;
+  }
+
+  /* Restore navigation text */
+
+  .app-sidebar.is-collapsed .sidebar-brand-text,
+  .app-sidebar.is-collapsed .sidebar-link-text {
+    display: block;
+  }
+
+  /* Restore normal navigation alignment */
+
+  .app-sidebar.is-collapsed .sidebar-link,
+  .app-sidebar.is-collapsed .sidebar-logout {
+    justify-content: flex-start;
+
+    gap: 13px;
+    padding: 0 13px;
+  }
+
+  /* Hide desktop toggle */
+
+  .desktop-toggle {
+    display: none;
+  }
+
+  /* Show mobile close button */
+
+  .mobile-toggle {
+    display: grid;
+  }
+
+  /* Standalone mobile hamburger */
+
+  .mobile-menu-trigger {
+    position: fixed;
+    top: 16px;
+    left: 16px;
+    z-index: 1050;
+
+    display: grid;
+    place-items: center;
+
+    width: 44px;
+    height: 44px;
+
+    padding: 0;
+
+    color: #ffffff;
+    background: #202020;
+
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 10px;
+
+    box-shadow: 0 3px 12px rgba(0, 0, 0, 0.18);
+
+    cursor: pointer;
+  }
+
+  .mobile-menu-trigger:hover {
+    background: #303030;
+  }
+
+  /* Drawer backdrop */
+
+  .sidebar-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 1100;
+
+    display: block;
+
+    width: 100%;
+    height: 100%;
+
+    padding: 0;
+
+    background: rgba(0, 0, 0, 0.48);
+
+    border: 0;
+
+    cursor: pointer;
+  }
+}
+
+/* =========================================
+   SMALL PHONES
+========================================= */
+
+@media (max-width: 480px) {
+
+  .app-sidebar,
+  .app-sidebar.is-collapsed {
+    width: min(280px, 88vw);
+
+    padding: 19px 14px 16px;
+  }
+
+  .mobile-menu-trigger {
+    top: 12px;
+    left: 12px;
+
+    width: 42px;
+    height: 42px;
+  }
+}
+
+/* =========================================
+   ACCESSIBILITY
+========================================= */
+
+.sidebar-link:focus-visible,
+.sidebar-logout:focus-visible,
+.sidebar-toggle:focus-visible,
+.mobile-menu-trigger:focus-visible {
+  outline: 2px solid #d99a7d;
+  outline-offset: 3px;
 }
