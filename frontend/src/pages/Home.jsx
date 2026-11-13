@@ -458,16 +458,15 @@ export default function Home() {
     );
   }
 
- return (
-  <div className="dashboard-layout">
-    <main className="dashboard-main">
-      <div className="dashboard-content">
-        <Header
-          userName={user?.name}
-          showSearch={true}
-          searchPlaceholder="Search your locker..."
-        />
-
+  return (
+    <div className="dashboard-layout">
+      <main className="dashboard-main">
+        <div className="dashboard-content">
+          <Header
+            userName={user?.name}
+            showSearch={true}
+            searchPlaceholder="Search your locker..."
+          />
 
           {/* Welcome section */}
           <section className="welcome-section">
@@ -505,7 +504,14 @@ export default function Home() {
               </div>
 
               <div className="stat-icon" aria-hidden="true">
-                ▤
+                <svg
+                  viewBox="0 0 24 24"
+                  className="dashboard-icon"
+                  focusable="false"
+                >
+                  <path d="M6 3.75h8l4 4v12.5H6z" />
+                  <path d="M14 3.75v4h4M9 12h6M9 15.5h6" />
+                </svg>
               </div>
             </article>
 
@@ -516,18 +522,33 @@ export default function Home() {
               </div>
 
               <div className="stat-icon" aria-hidden="true">
-                ▧
+                <svg
+                  viewBox="0 0 24 24"
+                  className="dashboard-icon"
+                  focusable="false"
+                >
+                  <path d="M5 4.5h14v15H5z" />
+                  <path d="M8.5 9h7M8.5 12.5h4" />
+                  <path d="m14.5 16.5 4-4 1.5 1.5-4 4-2 .5z" />
+                </svg>
               </div>
             </article>
 
             <article className="stat-card stat-uploaded">
               <div className="stat-info">
-                <span>Total Uploads</span>
+                <span>Total Uploaded Files</span>
                 <h2>{totalDocuments + totalNotes}</h2>
               </div>
 
               <div className="stat-icon" aria-hidden="true">
-                ↑
+                <svg
+                  viewBox="0 0 24 24"
+                  className="dashboard-icon"
+                  focusable="false"
+                >
+                  <path d="M12 15V4.5M8 8.5l4-4 4 4" />
+                  <path d="M5 14.5v4.25h14V14.5" />
+                </svg>
               </div>
             </article>
           </section>
@@ -549,7 +570,14 @@ export default function Home() {
                 disabled={isUploading || !isCsrfReady}
               >
                 <span className="quick-action-icon" aria-hidden="true">
-                  ↑
+                  <svg
+                    viewBox="0 0 24 24"
+                    className="dashboard-icon"
+                    focusable="false"
+                  >
+                    <path d="M12 15V4M8 8l4-4 4 4" />
+                    <path d="M5 14v5h14v-5" />
+                  </svg>
                 </span>
 
                 <span className="quick-action-text">
@@ -585,11 +613,45 @@ export default function Home() {
                 disabled={isCreatingNote || !isCsrfReady}
               >
                 <span className="quick-action-icon" aria-hidden="true">
-                  +
+                  <svg
+                    viewBox="0 0 24 24"
+                    className="dashboard-icon"
+                    focusable="false"
+                  >
+                    <path d="M5 4.5h14v15H5z" />
+                    <path d="M8.5 9h7M8.5 12.5h4" />
+                    <path d="M15 16h5M17.5 13.5v5" />
+                  </svg>
                 </span>
 
                 <span className="quick-action-text">
-                  <strong>Create Note</strong>
+                  <strong>Add Note</strong>
+                </span>
+
+                <span className="quick-action-arrow" aria-hidden="true">
+                  →
+                </span>
+              </button>
+
+              {/* View All Documents */}
+              <button
+                type="button"
+                className="quick-action-card action-documents"
+                onClick={() => navigate("/documents")}
+              >
+                <span className="quick-action-icon" aria-hidden="true">
+                  <svg
+                    viewBox="0 0 24 24"
+                    className="dashboard-icon"
+                    focusable="false"
+                  >
+                    <path d="M6 4h10l3 3v13H6z" />
+                    <path d="M16 4v4h3M9 12h7M9 15.5h7" />
+                  </svg>
+                </span>
+
+                <span className="quick-action-text">
+                  <strong>View All Documents</strong>
                 </span>
 
                 <span className="quick-action-arrow" aria-hidden="true">
@@ -604,7 +666,14 @@ export default function Home() {
                 onClick={() => navigate("/profile")}
               >
                 <span className="quick-action-icon" aria-hidden="true">
-                  ◉
+                  <svg
+                    viewBox="0 0 24 24"
+                    className="dashboard-icon"
+                    focusable="false"
+                  >
+                    <circle cx="12" cy="8" r="3.2" />
+                    <path d="M5.5 19c.5-3.2 2.8-5 6.5-5s6 1.8 6.5 5z" />
+                  </svg>
                 </span>
 
                 <span className="quick-action-text">
@@ -639,6 +708,13 @@ export default function Home() {
                 <div>
                   <h2>Recent Documents</h2>
                 </div>
+                <button
+                  type="button"
+                  className="view-all-link"
+                  onClick={() => navigate("/documents")}
+                >
+                  View all <span aria-hidden="true">→</span>
+                </button>
               </div>
 
               {files.length > 0 ? (
@@ -696,6 +772,13 @@ export default function Home() {
                 <div>
                   <h2>Recent Notes</h2>
                 </div>
+                <button
+                  type="button"
+                  className="view-all-link"
+                  onClick={() => navigate("/notes")}
+                >
+                  View all <span aria-hidden="true">→</span>
+                </button>
               </div>
 
               {notes.length > 0 ? (
