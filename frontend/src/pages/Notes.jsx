@@ -220,9 +220,7 @@ export default function Notes() {
           <div>
             <span className="notes-eyebrow">YOUR PERSONAL SPACE</span>
 
-            <h1>
-              My Notes<span>.</span>
-            </h1>
+            <h1>My Notes</h1>
 
             <p>Save your thoughts, ideas and important points.</p>
           </div>
