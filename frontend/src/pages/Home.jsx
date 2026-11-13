@@ -1,12 +1,11 @@
-
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import api, { fetchFreshCsrfToken } from "../services/api";
-import Sidebar from "../components/sidebar";
+import Header from "../components/Header";
+
 import "./Home.css";
 
-import HomeSkeleton from "../components/skeletons/HomeSkeleton";
-
+import DashboardSkeleton from "../components/skeletons/HomeSkeleton";
 export default function Home() {
   const navigate = useNavigate();
   const fileInputRef = useRef(null);
@@ -53,7 +52,7 @@ export default function Home() {
 
     if (!isCsrfReady) {
       setUploadError(
-        "Secure connection is not ready. Please refresh the dashboard."
+        "Secure connection is not ready. Please refresh the dashboard.",
       );
       return;
     }
@@ -72,7 +71,7 @@ export default function Home() {
 
     if (!isCsrfReady) {
       setUploadError(
-        "Secure connection is not ready. Please refresh the dashboard."
+        "Secure connection is not ready. Please refresh the dashboard.",
       );
       return;
     }
@@ -114,14 +113,14 @@ export default function Home() {
       const maxSizeMB = extension === "pdf" ? 50 : 10;
 
       setUploadError(
-        `${extension.toUpperCase()} files must not exceed ${maxSizeMB} MB.`
+        `${extension.toUpperCase()} files must not exceed ${maxSizeMB} MB.`,
       );
       return;
     }
 
     if (file.type !== config.mime) {
       setUploadError(
-        "The file type does not match its extension. Please select a valid file."
+        "The file type does not match its extension. Please select a valid file.",
       );
       return;
     }
@@ -140,9 +139,7 @@ export default function Home() {
         throw new Error(response.data?.message || "Upload failed.");
       }
 
-      setUploadMessage(
-        response.data?.message || "File uploaded successfully."
-      );
+      setUploadMessage(response.data?.message || "File uploaded successfully.");
 
       // Reload dashboard information.
       setRetryCount((count) => count + 1);
@@ -155,7 +152,7 @@ export default function Home() {
       setUploadError(
         error.response?.data?.message ||
           error.message ||
-          "Unable to upload this file. Please try again."
+          "Unable to upload this file. Please try again.",
       );
     } finally {
       setIsUploading(false);
@@ -166,7 +163,7 @@ export default function Home() {
   const handleOpenNoteModal = () => {
     if (!isCsrfReady) {
       setNoteError(
-        "Secure connection is not ready. Please refresh the dashboard."
+        "Secure connection is not ready. Please refresh the dashboard.",
       );
       return;
     }
@@ -183,7 +180,7 @@ export default function Home() {
 
     if (!isCsrfReady) {
       setNoteError(
-        "Secure connection is not ready. Please refresh the dashboard."
+        "Secure connection is not ready. Please refresh the dashboard.",
       );
       return;
     }
@@ -210,9 +207,7 @@ export default function Home() {
       });
 
       if (response.data?.success === false) {
-        throw new Error(
-          response.data?.message || "Could not create the note."
-        );
+        throw new Error(response.data?.message || "Could not create the note.");
       }
 
       setIsNoteModalOpen(false);
@@ -230,7 +225,7 @@ export default function Home() {
       setNoteError(
         error.response?.data?.message ||
           error.message ||
-          "Unable to create the note. Please try again."
+          "Unable to create the note. Please try again.",
       );
     } finally {
       setIsCreatingNote(false);
@@ -256,7 +251,7 @@ export default function Home() {
 
         if (!authenticatedUser?.user_id) {
           throw new Error(
-            "The server did not return valid account information."
+            "The server did not return valid account information.",
           );
         }
 
@@ -274,7 +269,7 @@ export default function Home() {
             setIsCsrfReady(true);
           } else {
             errors.push(
-              "Secure actions are temporarily unavailable. Please refresh the dashboard."
+              "Secure actions are temporarily unavailable. Please refresh the dashboard.",
             );
           }
         } catch (csrfError) {
@@ -284,7 +279,7 @@ export default function Home() {
           }
 
           errors.push(
-            "Secure actions are temporarily unavailable. Please refresh the dashboard."
+            "Secure actions are temporarily unavailable. Please refresh the dashboard.",
           );
         }
 
@@ -319,7 +314,7 @@ export default function Home() {
         const unauthorized = results.some(
           (result) =>
             result.status === "rejected" &&
-            result.reason?.response?.status === 401
+            result.reason?.response?.status === 401,
         );
 
         if (unauthorized) {
@@ -331,14 +326,12 @@ export default function Home() {
         if (filesResult.status === "fulfilled") {
           const response = filesResult.value.data;
 
-          const fileList = Array.isArray(response?.files)
-            ? response.files
-            : [];
+          const fileList = Array.isArray(response?.files) ? response.files : [];
 
           setFiles(fileList);
 
           setTotalDocuments(
-            Number(response?.pagination?.total ?? fileList.length)
+            Number(response?.pagination?.total ?? fileList.length),
           );
         } else {
           errors.push("Documents could not be loaded.");
@@ -348,15 +341,11 @@ export default function Home() {
         if (notesResult.status === "fulfilled") {
           const response = notesResult.value.data;
 
-          const noteList = Array.isArray(response?.notes)
-            ? response.notes
-            : [];
+          const noteList = Array.isArray(response?.notes) ? response.notes : [];
 
           setNotes(noteList);
 
-          setTotalNotes(
-            Number(response?.count ?? noteList.length)
-          );
+          setTotalNotes(Number(response?.count ?? noteList.length));
         } else {
           errors.push("Notes could not be loaded.");
         }
@@ -377,7 +366,7 @@ export default function Home() {
         setDashboardError(
           error.response?.data?.message ||
             error.message ||
-            "Unable to load your account. Please try again."
+            "Unable to load your account. Please try again.",
         );
       } finally {
         if (!signal.aborted) {
@@ -385,7 +374,7 @@ export default function Home() {
         }
       }
     },
-    [redirectToLogin]
+    [redirectToLogin],
   );
 
   // Restore session and reload after successful actions.
@@ -433,12 +422,24 @@ export default function Home() {
     }
   };
 
- 
+  // Initial loading screen.
+  // if (isLoading && !user) {
+  //   return (
+  //     <main className="home-loading">
+  //       <div
+  //         className="home-spinner"
+  //         role="status"
+  //         aria-label="Loading dashboard"
+  //       />
+  //       <p>Securing your digital locker...</p>
+  //     </main>
+  //   );
+  // }
 
-// Initial dashboard skeleton.
-if (isLoading && !user) {
-  return <HomeSkeleton />;
-}
+  // Initial dashboard skeleton.
+  if (isLoading && !user) {
+    return <DashboardSkeleton />;
+  }
 
   // Account verification failed.
   if (!user) {
@@ -457,30 +458,23 @@ if (isLoading && !user) {
     );
   }
 
-  return (
+ return (
+  <div className="dashboard-layout">
+    <main className="dashboard-main">
+      <div className="dashboard-content">
+        <Header
+          userName={user?.name}
+          showSearch={true}
+          searchPlaceholder="Search your locker..."
+        />
 
-    
-
-    <div className="dashboard-layout">
-      <Sidebar />
-
-      <main className="dashboard-main">
-        <div className="dashboard-content">
 
           {/* Welcome section */}
           <section className="welcome-section">
             <div className="welcome-content">
-              <span className="welcome-label">
-                YOUR DIGITAL LOCKER
-              </span>
+              <span className="welcome-label">YOUR DIGITAL LOCKER</span>
 
-              <h1>
-                Welcome back, {user.name || "User"}!
-              </h1>
-
-              <p className="welcome-description">
-                Manage your documents and notes securely, all in one place.
-              </p>
+              <h1>Welcome back, {user.name || "User"}!</h1>
             </div>
 
             <div className="dashboard-date">
@@ -503,15 +497,11 @@ if (isLoading && !user) {
           )}
 
           {/* Dashboard statistics */}
-          <section
-            className="stats-grid"
-            aria-label="Dashboard statistics"
-          >
+          <section className="stats-grid" aria-label="Dashboard statistics">
             <article className="stat-card stat-documents">
               <div className="stat-info">
                 <span>Total Documents</span>
                 <h2>{totalDocuments}</h2>
-                <p>Documents in your locker</p>
               </div>
 
               <div className="stat-icon" aria-hidden="true">
@@ -523,7 +513,6 @@ if (isLoading && !user) {
               <div className="stat-info">
                 <span>Total Notes</span>
                 <h2>{totalNotes}</h2>
-                <p>Your saved notes</p>
               </div>
 
               <div className="stat-icon" aria-hidden="true">
@@ -535,7 +524,6 @@ if (isLoading && !user) {
               <div className="stat-info">
                 <span>Total Uploads</span>
                 <h2>{totalDocuments + totalNotes}</h2>
-                <p>Total documents and notes uploaded</p>
               </div>
 
               <div className="stat-icon" aria-hidden="true">
@@ -548,17 +536,11 @@ if (isLoading && !user) {
           <section className="quick-actions-section">
             <div className="quick-actions-heading">
               <div>
-                <span className="section-eyebrow">
-                  GET STARTED
-                </span>
-
                 <h2>Quick Actions</h2>
-                <p>Common tasks, just one click away.</p>
               </div>
             </div>
 
             <div className="quick-actions-grid">
-
               {/* Upload Document */}
               <button
                 type="button"
@@ -566,10 +548,7 @@ if (isLoading && !user) {
                 onClick={handleChooseFile}
                 disabled={isUploading || !isCsrfReady}
               >
-                <span
-                  className="quick-action-icon"
-                  aria-hidden="true"
-                >
+                <span className="quick-action-icon" aria-hidden="true">
                   ↑
                 </span>
 
@@ -579,16 +558,11 @@ if (isLoading && !user) {
                   </strong>
 
                   <small>
-                    {isUploading
-                      ? "Please wait while your file uploads"
-                      : "Securely add a PDF or audio file"}
+                    {isUploading ? "Please wait while your file uploads" : ""}
                   </small>
                 </span>
 
-                <span
-                  className="quick-action-arrow"
-                  aria-hidden="true"
-                >
+                <span className="quick-action-arrow" aria-hidden="true">
                   →
                 </span>
               </button>
@@ -610,22 +584,15 @@ if (isLoading && !user) {
                 onClick={handleOpenNoteModal}
                 disabled={isCreatingNote || !isCsrfReady}
               >
-                <span
-                  className="quick-action-icon"
-                  aria-hidden="true"
-                >
+                <span className="quick-action-icon" aria-hidden="true">
                   +
                 </span>
 
                 <span className="quick-action-text">
                   <strong>Create Note</strong>
-                  <small>Write and save a new note</small>
                 </span>
 
-                <span
-                  className="quick-action-arrow"
-                  aria-hidden="true"
-                >
+                <span className="quick-action-arrow" aria-hidden="true">
                   →
                 </span>
               </button>
@@ -636,22 +603,15 @@ if (isLoading && !user) {
                 className="quick-action-card action-profile"
                 onClick={() => navigate("/profile")}
               >
-                <span
-                  className="quick-action-icon"
-                  aria-hidden="true"
-                >
+                <span className="quick-action-icon" aria-hidden="true">
                   ◉
                 </span>
 
                 <span className="quick-action-text">
                   <strong>My Profile</strong>
-                  <small>View and manage your account</small>
                 </span>
 
-                <span
-                  className="quick-action-arrow"
-                  aria-hidden="true"
-                >
+                <span className="quick-action-arrow" aria-hidden="true">
                   →
                 </span>
               </button>
@@ -673,13 +633,11 @@ if (isLoading && !user) {
 
           {/* Recent Documents and Recent Notes */}
           <section className="dashboard-bottom-grid">
-
             {/* Recent Documents: maximum 4 latest files */}
             <article className="dashboard-panel">
               <div className="panel-heading">
                 <div>
                   <h2>Recent Documents</h2>
-                  <p>Your 4 most recently uploaded files</p>
                 </div>
               </div>
 
@@ -694,7 +652,7 @@ if (isLoading && !user) {
                       onClick={() => handleDocumentClick(file)}
                       onKeyDown={(event) =>
                         handleRecentItemKeyDown(event, () =>
-                          handleDocumentClick(file)
+                          handleDocumentClick(file),
                         )
                       }
                       aria-label={`Open ${file.file_name || "document"} in Documents`}
@@ -716,7 +674,7 @@ if (isLoading && !user) {
                                   day: "2-digit",
                                   month: "short",
                                   year: "numeric",
-                                }
+                                },
                               )
                             : "Date unavailable"}
                         </span>
@@ -737,7 +695,6 @@ if (isLoading && !user) {
               <div className="panel-heading">
                 <div>
                   <h2>Recent Notes</h2>
-                  <p>Your 4 most recently saved notes</p>
                 </div>
               </div>
 
@@ -752,7 +709,7 @@ if (isLoading && !user) {
                       onClick={() => handleNoteClick(note)}
                       onKeyDown={(event) =>
                         handleRecentItemKeyDown(event, () =>
-                          handleNoteClick(note)
+                          handleNoteClick(note),
                         )
                       }
                       aria-label={`Open ${note.title || "note"} in Notes`}
@@ -765,7 +722,7 @@ if (isLoading && !user) {
                         <span>
                           {note.updated_at || note.created_at
                             ? new Date(
-                                note.updated_at || note.created_at
+                                note.updated_at || note.created_at,
                               ).toLocaleDateString("en-IN", {
                                 day: "2-digit",
                                 month: "short",
@@ -791,10 +748,7 @@ if (isLoading && !user) {
             <div
               className="note-modal-overlay"
               onMouseDown={(event) => {
-                if (
-                  event.target === event.currentTarget &&
-                  !isCreatingNote
-                ) {
+                if (event.target === event.currentTarget && !isCreatingNote) {
                   setIsNoteModalOpen(false);
                 }
               }}
@@ -807,17 +761,9 @@ if (isLoading && !user) {
               >
                 <div className="note-modal-heading">
                   <div>
-                    <span className="section-eyebrow">
-                      YOUR DIGITAL LOCKER
-                    </span>
+                    <span className="section-eyebrow">YOUR DIGITAL LOCKER</span>
 
-                    <h2 id="create-note-heading">
-                      Create a Note
-                    </h2>
-
-                    <p>
-                      Save an important thought or reminder.
-                    </p>
+                    <h2 id="create-note-heading">Create a Note</h2>
                   </div>
 
                   <button
@@ -832,33 +778,25 @@ if (isLoading && !user) {
                 </div>
 
                 <form onSubmit={handleCreateNote}>
-                  <label htmlFor="quick-note-title">
-                    Note title
-                  </label>
+                  <label htmlFor="quick-note-title">Note title</label>
 
                   <input
                     id="quick-note-title"
                     type="text"
                     value={noteTitle}
-                    onChange={(event) =>
-                      setNoteTitle(event.target.value)
-                    }
+                    onChange={(event) => setNoteTitle(event.target.value)}
                     placeholder="Enter your note title"
                     maxLength={255}
                     required
                     disabled={isCreatingNote || !isCsrfReady}
                   />
 
-                  <label htmlFor="quick-note-content">
-                    Content
-                  </label>
+                  <label htmlFor="quick-note-content">Content</label>
 
                   <textarea
                     id="quick-note-content"
                     value={noteContent}
-                    onChange={(event) =>
-                      setNoteContent(event.target.value)
-                    }
+                    onChange={(event) => setNoteContent(event.target.value)}
                     placeholder="Write your note here..."
                     rows={5}
                     disabled={isCreatingNote || !isCsrfReady}
