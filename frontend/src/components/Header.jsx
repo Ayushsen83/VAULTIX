@@ -1,5 +1,4 @@
 
-
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import api from "../services/api";
@@ -7,13 +6,19 @@ import "./Header.css";
 
 export default function Header({
   userName = "",
-  searchPlaceholder = "Search...",
+  searchPlaceholder = "Search notes and documents...",
   searchValue = "",
   onSearchChange,
   showSearch = true,
 }) {
   const navigate = useNavigate();
+
   const [accountName, setAccountName] = useState(userName);
+  const [query, setQuery] = useState(searchValue);
+  const [results, setResults] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [searchError, setSearchError] = useState("");
+  const [showResults, setShowResults] = useState(false);
 
   // Keep avatar updated when parent receives user profile.
   useEffect(() => {
@@ -48,6 +53,94 @@ export default function Header({
     };
   }, [userName]);
 
+  // Keep local search synchronized with parent value, if provided.
+  useEffect(() => {
+    setQuery(searchValue);
+  }, [searchValue]);
+
+  // Global search API with debounce.
+  useEffect(() => {
+    const keyword = query.trim();
+
+    if (!showSearch || keyword.length < 2) {
+      setResults([]);
+      setLoading(false);
+      setSearchError("");
+      return;
+    }
+
+    let isActive = true;
+
+    const timer = setTimeout(async () => {
+      try {
+        setLoading(true);
+        setSearchError("");
+
+        const response = await api.get("/search", {
+          params: {
+            q: keyword,
+            type: "all",
+            page: 1,
+            limit: 10,
+          },
+        });
+
+        if (!isActive) return;
+
+        setResults(response.data?.results || []);
+      } catch (error) {
+        if (!isActive) return;
+
+        console.error("Global search failed:", error);
+
+        setResults([]);
+        setSearchError(
+          error.response?.data?.message ||
+          "Unable to search right now. Please try again."
+        );
+      } finally {
+        if (isActive) {
+          setLoading(false);
+        }
+      }
+    }, 350);
+
+    return () => {
+      isActive = false;
+      clearTimeout(timer);
+    };
+  }, [query, showSearch]);
+
+  const handleSearchChange = (event) => {
+    const value = event.target.value;
+
+    setQuery(value);
+    setShowResults(true);
+
+    onSearchChange?.(value);
+  };
+
+  // Navigate to the relevant section.
+  const handleResultClick = (result) => {
+    setShowResults(false);
+
+    if (result.type === "note") {
+      navigate("/notes", {
+        state: {
+          searchQuery: query,
+          selectedResult: result,
+        },
+      });
+    } else if (result.type === "document") {
+      navigate("/documents", {
+        state: {
+          searchQuery: query,
+          selectedResult: result,
+        },
+      });
+    }
+  };
+
   const initial =
     accountName
       ?.trim()
@@ -61,20 +154,97 @@ export default function Header({
     <header className="header">
 
       {showSearch && (
-        <div className="header-search">
-          <span className="header-search-icon" aria-hidden="true">
-            ⌕
-          </span>
+        <div className="header-search-wrapper">
 
-          <input
-            type="search"
-            placeholder={searchPlaceholder}
-            value={searchValue}
-            onChange={(event) =>
-              onSearchChange?.(event.target.value)
-            }
-            aria-label={searchPlaceholder}
-          />
+          <div className="header-search">
+            <span
+              className="header-search-icon"
+              aria-hidden="true"
+            >
+              ⌕
+            </span>
+
+            <input
+              type="search"
+              placeholder={searchPlaceholder}
+              value={query}
+              onChange={handleSearchChange}
+              onFocus={() => setShowResults(true)}
+              aria-label={searchPlaceholder}
+              aria-expanded={showResults}
+            />
+
+            {loading && (
+              <span className="header-search-loader" />
+            )}
+
+          </div>
+
+          {showResults && query.trim().length >= 2 && (
+            <div className="global-search-dropdown">
+
+              {loading && (
+                <div className="global-search-message">
+                  Searching Notes and Documents...
+                </div>
+              )}
+
+              {!loading && searchError && (
+                <div className="global-search-message global-search-error">
+                  {searchError}
+                </div>
+              )}
+
+              {!loading &&
+                !searchError &&
+                results.length === 0 && (
+                  <div className="global-search-message">
+                    No matching Notes or Documents found.
+                  </div>
+                )}
+
+              {!loading && results.length > 0 && (
+                <>
+                  <div className="global-search-heading">
+                    Search Results ({results.length})
+                  </div>
+
+                  {results.map((result) => (
+                    <button
+                      type="button"
+                      className="global-search-result"
+                      key={`${result.type}-${result.id}`}
+                      onClick={() => handleResultClick(result)}
+                    >
+                      <span className="global-search-result-icon">
+                        {result.type === "note" ? "📝" : "📄"}
+                      </span>
+
+                      <span className="global-search-result-content">
+                        <span className="global-search-result-title">
+                          {result.title}
+                        </span>
+
+                        <span className="global-search-result-snippet">
+                          {result.type === "note"
+                            ? result.snippet
+                            : "Document"}
+                        </span>
+                      </span>
+
+                      <span className="global-search-result-type">
+                        {result.type === "note"
+                          ? "Note"
+                          : "Document"}
+                      </span>
+                    </button>
+                  ))}
+                </>
+              )}
+
+            </div>
+          )}
+
         </div>
       )}
 
