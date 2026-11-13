@@ -1,3 +1,8 @@
+const {
+  encryptNote,
+  decryptNote,
+  encryptNoteField,
+} = require("../utils/notesEncryption");
 
 const pool = require("../db");
 
@@ -30,18 +35,23 @@ const createNote = async (req, res, next) => {
       });
     }
 
-    const result = await pool.query(
-      `INSERT INTO notes (user_id, title, content)
-       VALUES ($1, $2, $3)
-       RETURNING id, title, content, created_at, updated_at`,
-      [req.user.user_id, title.trim(), content]
-    );
+    const encrypted = encryptNote({
+  title: title.trim(),
+  content,
+});
 
-    return res.status(201).json({
-      success: true,
-      message: "Note created successfully.",
-      note: result.rows[0],
-    });
+const result = await pool.query(
+  `INSERT INTO notes (user_id, title, content)
+   VALUES ($1, $2, $3)
+   RETURNING id, title, content, created_at, updated_at`,
+  [req.user.user_id, encrypted.title, encrypted.content]
+);
+
+return res.status(201).json({
+  success: true,
+  message: "Note created successfully.",
+  note: decryptNote(result.rows[0]),
+});
   } catch (error) {
     next(error);
   }
@@ -66,23 +76,32 @@ const getNotes = async (req, res, next) => {
       });
     }
 
-    // sort and order are selected from allowlists, not user SQL input
     const result = await pool.query(
       `SELECT id, title, content, created_at, updated_at
        FROM notes
        WHERE user_id = $1
-         AND (
-           title ILIKE $2
-           OR content ILIKE $2
-         )
        ORDER BY ${sort} ${order.toUpperCase()}, id DESC`,
-      [req.user.user_id, `%${q}%`]
+      [req.user.user_id]
     );
+
+    // Temporary search: decrypt and filter in backend memory.
+    // HMAC blind-index search will replace this in Phase 2.
+    let notes = result.rows.map(decryptNote);
+
+    if (q.trim()) {
+      const keyword = q.trim().toLocaleLowerCase();
+
+      notes = notes.filter(
+        (note) =>
+          note.title.toLocaleLowerCase().includes(keyword) ||
+          note.content.toLocaleLowerCase().includes(keyword)
+      );
+    }
 
     return res.status(200).json({
       success: true,
-      count: result.rows.length,
-      notes: result.rows,
+      count: notes.length,
+      notes,
     });
   } catch (error) {
     next(error);
@@ -101,24 +120,39 @@ const getNoteById = async (req, res, next) => {
       });
     }
 
-    const result = await pool.query(
-      `SELECT id, title, content, created_at, updated_at
-       FROM notes
-       WHERE id = $1 AND user_id = $2`,
-      [id, req.user.user_id]
-    );
+    const encryptedTitle =
+  title === undefined ? null : encryptNoteField(title.trim());
 
-    if (result.rows.length === 0) {
-      return res.status(404).json({
-        success: false,
-        message: "Note not found.",
-      });
-    }
+const encryptedContent =
+  content === undefined ? null : encryptNoteField(content);
 
-    return res.status(200).json({
-      success: true,
-      note: result.rows[0],
-    });
+const result = await pool.query(
+  `UPDATE notes
+   SET title = COALESCE($1, title),
+       content = COALESCE($2, content),
+       updated_at = CURRENT_TIMESTAMP
+   WHERE id = $3 AND user_id = $4
+   RETURNING id, title, content, created_at, updated_at`,
+  [
+    encryptedTitle,
+    encryptedContent,
+    id,
+    req.user.user_id,
+  ]
+);
+
+if (result.rows.length === 0) {
+  return res.status(404).json({
+    success: false,
+    message: "Note not found.",
+  });
+}
+
+return res.status(200).json({
+  success: true,
+  message: "Note updated successfully.",
+  note: decryptNote(result.rows[0]),
+});
   } catch (error) {
     next(error);
   }
