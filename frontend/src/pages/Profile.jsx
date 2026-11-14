@@ -661,7 +661,7 @@ export default function Profile() {
 
     return (
       <span className="email-status unavailable">
-        Status unavailable
+        Status
       </span>
     );
   };
@@ -682,12 +682,36 @@ export default function Profile() {
 
               <h1>My Profile</h1>
 
-              <p>
+              {/* <p>
                 Manage your personal information and keep your
                 VAULTIX account secure.
-              </p>
+              </p> */}
             </div>
           </div>
+
+          {/* VAULTIX PROFILE BANNER */}
+          <section className="profile-hero-banner" aria-label="VAULTIX account overview">
+            <div className="profile-hero-copy">
+              <span className="profile-hero-kicker">YOUR   IDENTITY</span>
+              <h2>Protected Account Space.</h2>
+              <p>Manage your personal details and keep your digital vault protected from one place.</p>
+              {/* <div className="profile-hero-points">
+                <span><i aria-hidden="true">✓</i> Personal details</span>
+                <span><i aria-hidden="true">✓</i> Account protection</span>
+              </div> */}
+            </div>
+            <div className="profile-hero-art" aria-hidden="true">
+              <div className="profile-hero-orbit profile-hero-orbit-one" />
+              <div className="profile-hero-orbit profile-hero-orbit-two" />
+              <div className="profile-hero-document">
+                <span className="profile-hero-document-line" />
+                <span className="profile-hero-document-line short" />
+                <span className="profile-hero-document-line" />
+                <span className="profile-hero-document-line medium" />
+              </div>
+              <div className="profile-hero-shield">✓</div>
+            </div>
+          </section>
 
           {/* PROFILE HEADER */}
           {!loading && !error && profile.userId && (
@@ -766,60 +790,10 @@ export default function Profile() {
           {/* PROFILE CONTENT */}
           {!loading && !error && profile.userId && (
             <>
-              {/* TABS */}
-              <div
-                className="profile-tabs"
-                role="tablist"
-                aria-label="Profile sections"
-                onKeyDown={handleTabKeyDown}
-              >
-                <button
-                  ref={personalTabRef}
-                  id="personal-tab"
-                  type="button"
-                  role="tab"
-                  aria-selected={activeTab === "personal"}
-                  aria-controls="profile-panel"
-                  tabIndex={activeTab === "personal" ? 0 : -1}
-                  className={`profile-tab ${
-                    activeTab === "personal" ? "active" : ""
-                  }`}
-                  onClick={() => handleTabChange("personal")}
-                  disabled={saving || changingPassword}
-                >
-                  <span aria-hidden="true">♙</span>
-                  Personal Information
-                </button>
-
-                <button
-                  ref={securityTabRef}
-                  id="security-tab"
-                  type="button"
-                  role="tab"
-                  aria-selected={activeTab === "security"}
-                  aria-controls="profile-panel"
-                  tabIndex={activeTab === "security" ? 0 : -1}
-                  className={`profile-tab ${
-                    activeTab === "security" ? "active" : ""
-                  }`}
-                  onClick={() => handleTabChange("security")}
-                  disabled={saving || changingPassword}
-                >
-                  <span aria-hidden="true">◇</span>
-                  Account Security
-                </button>
-              </div>
-
               {/* TAB PANEL */}
-              <section
-                id="profile-panel"
-                className="profile-panel"
-                role="tabpanel"
-                aria-labelledby={`${activeTab}-tab`}
-                tabIndex={0}
-              >
+              <div className="profile-sections-stack">
                 {/* PERSONAL INFORMATION */}
-                {activeTab === "personal" && (
+                {true && (
                   <div className="personal-information-section">
                     <div className="section-heading">
                       <div>
@@ -1075,7 +1049,7 @@ export default function Profile() {
                 )}
 
                 {/* ACCOUNT SECURITY */}
-                {activeTab === "security" && (
+                {true && (
                   <div className="account-security-section">
                     <div className="section-heading">
                       <div>
@@ -1285,8 +1259,7 @@ export default function Profile() {
                         <h3>Email Verification</h3>
 
                         <p>
-                          Check the verification status of the email
-                          address associated with your VAULTIX account.
+                           Check Your VAULTIX Account E-Mail Verification Status
                         </p>
 
                         <div className="security-email-address">
@@ -1300,7 +1273,7 @@ export default function Profile() {
                     </div>
                   </div>
                 )}
-              </section>
+              </div>
             </>
           )}
         </main>
