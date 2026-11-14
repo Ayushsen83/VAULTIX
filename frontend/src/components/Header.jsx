@@ -165,6 +165,8 @@ export default function Header({
             </span>
 
             <input
+              id ="global-search"
+              name="globalSearch"
               type="search"
               placeholder={searchPlaceholder}
               value={query}
