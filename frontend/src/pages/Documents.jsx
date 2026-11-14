@@ -3,6 +3,18 @@ import api, { refreshCsrfToken } from "../services/api";
 import DocumentsSkeleton from "../components/skeletons/DocumentsSkeleton";
 import "./Documents.css";
 
+// Generate initials from user's registered name
+const getInitials = (name = "") => {
+  const parts = String(name).trim().split(/\s+/).filter(Boolean);
+
+  return (
+    parts
+      .slice(0, 2)
+      .map((part) => part.charAt(0).toUpperCase())
+      .join("") || "U"
+  );
+};
+
 export default function Documents() {
   const [files, setFiles] = useState([]);
   const [search, setSearch] = useState("");
@@ -16,7 +28,29 @@ export default function Documents() {
   const [uploadFileName, setUploadFileName] = useState("");
   const [uploadStatus, setUploadStatus] = useState("");
   const [pagination, setPagination] = useState({});
+
+  // Logged-in user's profile name
+  const [userName, setUserName] = useState("");
+
   const inputRef = useRef(null);
+
+  // Fetch logged-in user's profile
+  useEffect(() => {
+    const fetchUserProfile = async () => {
+      try {
+        const response = await api.get("/users/me");
+        const user = response.data?.user;
+
+        if (user?.name) {
+          setUserName(user.name);
+        }
+      } catch (error) {
+        console.error("Unable to fetch user profile:", error);
+      }
+    };
+
+    fetchUserProfile();
+  }, []);
 
   // Get a fresh CSRF token before every mutation.
   const requireCsrfToken = async () => {
@@ -306,7 +340,10 @@ export default function Documents() {
               })}
             </span>
 
-            <div className="documents-avatar">V</div>
+            <div className="documents-avatar">
+              {getInitials(userName)}
+            </div>
+
           </div>
         </header>
 

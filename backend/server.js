@@ -79,7 +79,7 @@ app.use(
 );
 
 // 5. Protected files API
-app.use("/api/files", generalLimiter, uploadLimiter, filesRoutes);
+app.use("/api/files",  filesRoutes);
 
 // 6. Protected users API
 app.use("/api/users", generalLimiter, usersRoutes);
