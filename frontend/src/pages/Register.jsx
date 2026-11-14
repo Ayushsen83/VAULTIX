@@ -190,8 +190,8 @@ export default function Register() {
         <div className="qv-dots-decoration" />
 
         <div className="qv-brand">
-          <div className="qv-brand-logo">V</div>
-          {/* <img src="/QuadravaulLogo.png"alt="Vaultrix Logo"className="qv-brand-logo-img"/> */}
+          {/* <div className="qv-brand-logo">V</div> */}
+          <img src="/QuadravaulLogo.png"alt="Vaultrix Logo"className="qv-brand-logo-img"/>
 
           <div className="qv-brand-meta">
             <h3>Vaultrix</h3>
