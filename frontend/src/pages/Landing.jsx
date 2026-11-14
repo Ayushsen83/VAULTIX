@@ -10,7 +10,11 @@ export default function Landing() {
       {/* Top Header */}
       <header className="qv-landing-nav">
         <div className="qv-brand qv-nav-brand">
-          <div className="qv-brand-logo">Q</div>
+          <img
+            src="/QuadravaulLogo.png"
+            alt="QuadraVault Logo"
+            className="qv-brand-logo-img"
+          />
           <div className="qv-brand-meta">
             <h3>QuadraVault</h3>
             <span className="qv-nav-tagline">Present a new way to manage your documents</span>
@@ -27,9 +31,13 @@ export default function Landing() {
 
       {/* Hero Locker Card */}
       <main className="qv-hero-card">
-        {/* Brand Meta */}
+        {/* Brand Meta (Replaced "V" with QuadravaulLogo.png) */}
         <div className="qv-brand qv-hero-brand">
-          <div className="qv-brand-logo">V</div>
+          <img
+            src="/QuadravaulLogo.png"
+            alt="Vaultrix Logo"
+            className="qv-brand-logo-img"
+          />
           <div className="qv-brand-meta">
             <h3>Vaultrix</h3>
             <span>Your Digital Locker • By QuadraVault</span>
