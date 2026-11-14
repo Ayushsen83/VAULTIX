@@ -1,4 +1,3 @@
-
 @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Playfair+Display:ital,wght@0,600;0,700;1,600&display=swap');
 
 /* =====================================================
@@ -153,7 +152,7 @@
 .profile-header {
   display: flex;
   align-items: center;
-  gap: clamp(14px, 2vw, 22px);
+  gap: 18px;
 
   width: 100%;
   min-width: 0;
@@ -172,12 +171,13 @@
 
 .profile-header-initials {
   display: flex;
-  flex: 0 0 66px;
+  flex: 0 0 60px;
   align-items: center;
   justify-content: center;
 
-  width: 66px;
-  height: 66px;
+  width: 60px;
+  height: 60px;
+  margin-right: 4px;
 
   border: 1px solid #e6d5c2;
   border-radius: 50%;
@@ -185,7 +185,7 @@
   background: linear-gradient(145deg, #f5eadb, #ead8c1);
   color: #633e25;
 
-  font-size: 23px;
+  font-size: 20px;
   font-weight: 800;
   letter-spacing: 0.5px;
   text-transform: uppercase;
@@ -1305,6 +1305,7 @@
     width: 54px;
     height: 54px;
     min-width: 54px;
+    margin-right: 0;
 
     font-size: 19px;
   }
@@ -1523,6 +1524,7 @@
     width: 48px;
     height: 48px;
     min-width: 48px;
+    margin-right: 0;
 
     font-size: 17px;
   }
@@ -1671,6 +1673,14 @@
   border: 1px solid rgb(126 83 54 / 12%);
   border-radius: 50%;
 }
+
+/* Hide the hair-like pseudo-element border line on mobile screens */
+@media (max-width: 768px) {
+  .profile-hero-banner::before {
+    display: none;
+  }
+}
+
 .profile-hero-copy { position: relative; z-index: 2; max-width: 650px; }
 .profile-hero-kicker {
   display: block;
