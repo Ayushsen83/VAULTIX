@@ -280,7 +280,7 @@ export default function Sidebar({
         {/* Brand section */}
         <div className="sidebar-brand">
           <div className="sidebar-brand-content">
-            <div className="sidebar-brand-icon">V</div>
+            <img src="/QuadravaulLogo.png" alt="Vaultix Logo" className="sidebar-brand-logo-img"/>
 
             <div className="sidebar-brand-text">
               <h2>VAULTIX</h2>
