@@ -109,6 +109,7 @@ const getNotes = async (req, res, next) => {
 };
 
 // GET /api/notes/:id
+
 const getNoteById = async (req, res, next) => {
   try {
     const { id } = req.params;
@@ -120,43 +121,29 @@ const getNoteById = async (req, res, next) => {
       });
     }
 
-    const encryptedTitle =
-  title === undefined ? null : encryptNoteField(title.trim());
+    const result = await pool.query(
+      `SELECT id, title, content, created_at, updated_at
+       FROM notes
+       WHERE id = $1 AND user_id = $2`,
+      [id, req.user.user_id]
+    );
 
-const encryptedContent =
-  content === undefined ? null : encryptNoteField(content);
+    if (result.rows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: "Note not found.",
+      });
+    }
 
-const result = await pool.query(
-  `UPDATE notes
-   SET title = COALESCE($1, title),
-       content = COALESCE($2, content),
-       updated_at = CURRENT_TIMESTAMP
-   WHERE id = $3 AND user_id = $4
-   RETURNING id, title, content, created_at, updated_at`,
-  [
-    encryptedTitle,
-    encryptedContent,
-    id,
-    req.user.user_id,
-  ]
-);
-
-if (result.rows.length === 0) {
-  return res.status(404).json({
-    success: false,
-    message: "Note not found.",
-  });
-}
-
-return res.status(200).json({
-  success: true,
-  message: "Note updated successfully.",
-  note: decryptNote(result.rows[0]),
-});
+    return res.status(200).json({
+      success: true,
+      note: decryptNote(result.rows[0]),
+    });
   } catch (error) {
     next(error);
   }
 };
+
 
 // PUT /api/notes/:id
 const updateNote = async (req, res, next) => {
@@ -197,33 +184,40 @@ const updateNote = async (req, res, next) => {
       });
     }
 
-    const result = await pool.query(
-      `UPDATE notes
-       SET title = COALESCE($1, title),
-           content = COALESCE($2, content),
-           updated_at = CURRENT_TIMESTAMP
-       WHERE id = $3 AND user_id = $4
-       RETURNING id, title, content, created_at, updated_at`,
-      [
-        title === undefined ? null : title.trim(),
-        content === undefined ? null : content,
-        id,
-        req.user.user_id,
-      ]
-    );
+const encryptedTitle =
+  title === undefined ? null : encryptNoteField(title.trim());
 
-    if (result.rows.length === 0) {
-      return res.status(404).json({
-        success: false,
-        message: "Note not found.",
-      });
-    }
+const encryptedContent =
+  content === undefined ? null : encryptNoteField(content);
 
-    return res.status(200).json({
-      success: true,
-      message: "Note updated successfully.",
-      note: result.rows[0],
-    });
+const result = await pool.query(
+  `UPDATE notes
+   SET title = COALESCE($1, title),
+       content = COALESCE($2, content),
+       updated_at = CURRENT_TIMESTAMP
+   WHERE id = $3 AND user_id = $4
+   RETURNING id, title, content, created_at, updated_at`,
+  [
+    encryptedTitle,
+    encryptedContent,
+    id,
+    req.user.user_id,
+  ]
+);
+
+if (result.rows.length === 0) {
+  return res.status(404).json({
+    success: false,
+    message: "Note not found.",
+  });
+}
+
+return res.status(200).json({
+  success: true,
+  message: "Note updated successfully.",
+  note: decryptNote(result.rows[0]),
+});
+
   } catch (error) {
     next(error);
   }

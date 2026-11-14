@@ -1,4 +1,4 @@
-
+/* 
 .protected-layout {
   min-height: 100vh;
 }
@@ -13,5 +13,63 @@
   .protected-content {
     margin-left: 220px;
     width: calc(100% - 220px);
+  }
+} */
+
+
+
+
+
+/* =========================================
+   VAULTIX PROTECTED LAYOUT
+========================================= */
+
+.protected-layout {
+  display: flex;
+  width: 100%;
+  min-height: 100vh;
+  min-height: 100dvh;
+}
+
+/* =========================================
+   MAIN CONTENT - DESKTOP
+========================================= */
+
+.protected-content {
+  flex: 1;
+  width: calc(100% - 260px);
+  min-width: 0;
+  min-height: 100vh;
+  min-height: 100dvh;
+
+  margin-left: 260px;
+
+  transition:
+    width 0.25s ease,
+    margin-left 0.25s ease;
+}
+
+/* =========================================
+   COLLAPSED SIDEBAR
+========================================= */
+
+.protected-layout.sidebar-collapsed .protected-content {
+  width: calc(100% - 78px);
+  margin-left: 78px;
+}
+
+/* =========================================
+   TABLET AND MOBILE
+========================================= */
+
+@media (max-width: 1024px) {
+  .protected-content,
+  .protected-layout.sidebar-collapsed .protected-content {
+    width: 100%;
+    min-width: 0;
+    min-height: 100vh;
+    min-height: 100dvh;
+
+    margin-left: 0;
   }
 }

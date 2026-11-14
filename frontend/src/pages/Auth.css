@@ -83,7 +83,7 @@
   text-align: left;
 }
 
-.qv-brand-logo {
+/* .qv-brand-logo {
   width: 32px;
   height: 32px;
   border-radius: 8px;
@@ -96,7 +96,7 @@
   font-size: 1.05rem;
   box-shadow: 0 3px 8px rgba(207, 87, 40, 0.3);
   flex-shrink: 0;
-}
+} */
 
 .qv-brand-meta {
   display: flex;
@@ -346,4 +346,15 @@
   border-radius: 12px;
   border: 1px solid #ded5c3;
   margin: 0.6rem 0;
+}
+
+.qv-brand-logo-img {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 1px solid #dfd3c3;
+  box-shadow: 0 3px 8px rgba(111, 78, 55, 0.16);
+  flex-shrink: 0;
+  display: block;
 }

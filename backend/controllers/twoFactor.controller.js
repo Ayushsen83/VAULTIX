@@ -298,7 +298,7 @@ const verifyTwoFactorLogin = async (req, res, next) => {
     );
 
     // 7. Set the normal HttpOnly authentication cookie
-    const isProduction = process.env.NODE_ENV === "production";
+    const isProduction = process.env.NODE_ENV ;
 
     res.cookie("vaultix_token", accessToken, {
       httpOnly: true,

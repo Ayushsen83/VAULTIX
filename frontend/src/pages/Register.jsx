@@ -42,6 +42,12 @@ export default function Register() {
       return;
     }
 
+    const cleanPhone = formData.phonenumber.trim();
+    if (!/^[6-9]\d{9}$/.test(cleanPhone)) {
+      setError("Mobile number must be 10 digits and start with 6, 7, 8, or 9.");
+      return;
+    }
+
     const ageNum = Number(formData.age);
 
     if (!Number.isInteger(ageNum) || ageNum < 1 || ageNum > 120) {
@@ -64,7 +70,7 @@ export default function Register() {
       const regRes = await api.post("/auth/register", {
         name: formData.name.trim(),
         email: formData.email.trim().toLowerCase(),
-        phonenumber: formData.phonenumber.trim(),
+        phonenumber: cleanPhone,
         age: ageNum,
         password: formData.password,
       });
@@ -184,10 +190,11 @@ export default function Register() {
         <div className="qv-dots-decoration" />
 
         <div className="qv-brand">
-          <div className="qv-brand-logo">V</div>
+          {/* <div className="qv-brand-logo">V</div> */}
+          <img src="/QuadravaulLogo.png" alt="Vaultix Logo" className="qv-brand-logo-img" />
 
           <div className="qv-brand-meta">
-            <h3>Vaultrix</h3>
+            <h3>Vaultix</h3>
             <span>Your Digital Locker • By QuadraVault</span>
           </div>
         </div>
@@ -197,7 +204,7 @@ export default function Register() {
             <h2 className="qv-title">Create Account</h2>
 
             <p className="qv-subtitle">
-              Join Vaultrix and keep your files safe.
+              Join Vaultix and keep your files safe.
             </p>
 
             {error && (
@@ -248,11 +255,20 @@ export default function Register() {
                     name="phonenumber"
                     className="qv-input"
                     required
-                    maxLength={20}
+                    maxLength={10}
+                    inputMode="numeric"
+                    pattern="[6-9][0-9]{9}"
+                    title="10-digit mobile number starting with 6, 7, 8, or 9"
                     placeholder="Phone number"
                     autoComplete="tel"
                     value={formData.phonenumber}
-                    onChange={handleChange}
+                    onChange={(e) => {
+                      const digitsOnly = e.target.value.replace(/\D/g, "").slice(0, 10);
+                      setFormData((previous) => ({
+                        ...previous,
+                        phonenumber: digitsOnly,
+                      }));
+                    }}
                   />
                 </div>
 
