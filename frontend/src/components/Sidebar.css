@@ -631,3 +631,12 @@
   outline: 2px solid #d99a7d;
   outline-offset: 3px;
 }
+
+.sidebar-brand-logo-img {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  object-fit: cover;
+  flex-shrink: 0;
+  display: block;
+}
