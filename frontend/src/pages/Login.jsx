@@ -133,10 +133,10 @@ export default function Login() {
       <div className="qv-card-dark">
         <div className="qv-brand">
           {/* <div className="qv-brand-logo">V</div> */}
-          <img src="/QuadravaulLogo.png" alt="Vaultrix Logo" className="qv-brand-logo-img" />
+          <img src="/QuadravaulLogo.png" alt="Vaultix Logo" className="qv-brand-logo-img" />
 
           <div className="qv-brand-meta">
-            <h3>Vaultrix</h3>
+            <h3>Vaultix</h3>
             <span>Your Digital Locker • By QuadraVault</span>
           </div>
         </div>
