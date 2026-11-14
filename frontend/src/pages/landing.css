@@ -21,22 +21,22 @@
 @media (min-width: 900px) {
   .qv-landing-page {
     justify-content: center;
-    padding: 1.5rem 2rem;
+    padding: 1.5rem 2.5rem;
   }
 }
 
 /* =========================================================
-   TOP NAVBAR (Responsive across all phone widths)
+   TOP NAVBAR (Balanced Width — Never Stretched)
    ========================================================= */
 .qv-landing-nav {
   width: 100%;
-  max-width: 940px; /* Constrained to match the desktop card width */
+  max-width: min(92vw, 1160px);
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 0.85rem;
+  margin-bottom: 1.15rem;
   box-sizing: border-box;
-  gap: 0.5rem;
+  gap: 0.75rem;
 }
 
 .qv-nav-brand {
@@ -44,7 +44,6 @@
   min-width: 0;
 }
 
-/* Hide the secondary tagline on phones so buttons are never cut off */
 .qv-nav-tagline {
   display: none;
 }
@@ -52,7 +51,7 @@
 @media (min-width: 680px) {
   .qv-nav-tagline {
     display: block;
-    font-size: 0.72rem;
+    font-size: 0.78rem;
     color: #8a8275;
     white-space: nowrap;
     overflow: hidden;
@@ -63,17 +62,17 @@
 .qv-nav-actions {
   display: flex;
   align-items: center;
-  gap: 0.6rem;
-  flex-shrink: 0; /* Prevents action buttons from wrapping or shrinking */
+  gap: 0.85rem;
+  flex-shrink: 0;
 }
 
 .qv-nav-link {
   color: #1a221e;
   text-decoration: none;
   font-weight: 700;
-  font-size: 0.85rem;
-  padding: 0.45rem 0.5rem;
-  white-space: nowrap; /* Prevents "Sign \n In" stacking */
+  font-size: 0.9rem;
+  padding: 0.45rem 0.6rem;
+  white-space: nowrap;
   display: inline-flex;
   align-items: center;
 }
@@ -86,10 +85,10 @@
   background-color: #121915;
   color: #ffffff;
   border: none;
-  padding: 0.55rem 0.95rem;
+  padding: 0.62rem 1.2rem;
   border-radius: 9px;
   font-weight: 700;
-  font-size: 0.82rem;
+  font-size: 0.88rem;
   cursor: pointer;
   white-space: nowrap;
   display: inline-flex;
@@ -107,28 +106,29 @@
 .qv-brand {
   display: inline-flex;
   align-items: center;
-  gap: 0.55rem;
+  gap: 0.65rem;
   text-align: left;
 }
 
 .qv-hero-brand {
-  margin-bottom: 1rem;
+  margin-bottom: 1.15rem;
+  align-self: flex-start;
 }
 
-.qv-brand-logo {
-  width: 34px;
-  height: 34px;
-  border-radius: 8px;
+/* .qv-brand-logo {
+  width: 36px;
+  height: 36px;
+  border-radius: 9px;
   background: linear-gradient(135deg, #e56f3f 0%, #cf5728 100%);
   color: #ffffff;
   display: flex;
   align-items: center;
   justify-content: center;
   font-weight: 800;
-  font-size: 1.1rem;
-  box-shadow: 0 4px 10px rgba(207, 87, 40, 0.3);
+  font-size: 1.15rem;
+  box-shadow: 0 4px 10px rgba(207, 87, 40, 0.28);
   flex-shrink: 0;
-}
+} */
 
 .qv-brand-meta {
   display: flex;
@@ -139,7 +139,7 @@
 
 .qv-brand-meta h3 {
   margin: 0;
-  font-size: 1rem;
+  font-size: 1.05rem;
   font-weight: 700;
   letter-spacing: -0.3px;
   line-height: 1.15;
@@ -147,41 +147,43 @@
 }
 
 .qv-brand-meta span {
-  font-size: 0.7rem;
+  font-size: 0.74rem;
   color: #8a8275;
-  margin-top: 1px;
+  margin-top: 2px;
   display: block;
 }
 
 /* =========================================================
-   HERO CARD
+   HERO CARD (Natural Proportions, Zero Stretching)
    ========================================================= */
 .qv-hero-card {
   width: 100%;
-  max-width: 940px; /* Locked to 940px to prevent center empty space on desktop */
+  max-width: min(92vw, 1160px);
   background-color: #fbf9f4;
   border-radius: 24px;
   padding: 1.6rem 1.25rem;
-  box-shadow: 0 16px 40px rgba(26, 34, 30, 0.08);
+  box-shadow: 0 18px 42px rgba(26, 34, 30, 0.08);
   border: 1px solid #e5ded0;
   position: relative;
   overflow: hidden;
   box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
 }
 
 @media (min-width: 900px) {
   .qv-hero-card {
-    border-radius: 28px;
-    padding: 2.2rem 2.85rem 1.85rem 2.85rem;
+    border-radius: 30px;
+    padding: 2.75rem 3.75rem 2.5rem 3.75rem;
   }
 }
 
-/* Layout: Standard order for desktop, stacked for phones */
+/* Layout: Left text column + Right arch column */
 .qv-hero-layout {
   display: flex;
-  flex-direction: column; /* Content first on mobile */
+  flex-direction: column;
   align-items: center;
-  gap: 1.75rem;
+  gap: 2rem;
   width: 100%;
 }
 
@@ -190,7 +192,7 @@
     flex-direction: row;
     align-items: center;
     justify-content: space-between;
-    gap: 2rem;
+    gap: 3rem;
   }
 }
 
@@ -204,8 +206,8 @@
 
 @media (min-width: 820px) {
   .qv-hero-content {
-    flex: 1.15;
-    max-width: 440px; /* Constrains headline text to prevent horizontal sprawling */
+    flex: 1.1;
+    max-width: 490px;
     align-items: flex-start;
     text-align: left;
   }
@@ -213,18 +215,18 @@
 
 .qv-hero-title {
   font-family: 'Playfair Display', Georgia, serif;
-  font-size: clamp(1.9rem, 5vw, 2.75rem);
+  font-size: clamp(2.1rem, 3.4vw, 3.15rem);
   font-weight: 700;
-  line-height: 1.14;
+  line-height: 1.13;
   color: #1a221e;
-  margin: 0 0 0.5rem 0;
+  margin: 0 0 0.7rem 0;
   letter-spacing: -0.5px;
 }
 
 .qv-hero-tagline {
-  font-size: 0.92rem;
+  font-size: 1.02rem;
   color: #736c5f;
-  margin: 0 0 1.25rem 0;
+  margin: 0 0 1.55rem 0;
   font-weight: 500;
 }
 
@@ -232,18 +234,18 @@
   background-color: #121915;
   color: #ffffff;
   border: none;
-  border-radius: 22px;
-  padding: 0.8rem 1.75rem;
-  font-size: 0.92rem;
+  border-radius: 24px;
+  padding: 0.88rem 2rem;
+  font-size: 0.98rem;
   font-weight: 700;
   cursor: pointer;
   display: inline-flex;
   align-items: center;
-  gap: 0.5rem;
-  box-shadow: 0 4px 12px rgba(18, 25, 21, 0.22);
+  gap: 0.55rem;
+  box-shadow: 0 5px 14px rgba(18, 25, 21, 0.22);
   transition: all 0.2s ease;
-  margin-bottom: 1.5rem;
-  min-height: 46px;
+  margin-bottom: 1.85rem;
+  min-height: 48px;
 }
 
 .qv-btn-get-started:hover {
@@ -256,40 +258,40 @@
   display: flex;
   flex-wrap: wrap;
   justify-content: center;
-  gap: 1rem;
+  gap: 1.15rem;
   border-top: 1px solid #eae3d5;
-  padding-top: 1rem;
+  padding-top: 1.15rem;
   width: 100%;
 }
 
 @media (min-width: 820px) {
   .qv-features-row {
     justify-content: flex-start;
-    gap: 1.5rem;
-    padding-top: 1.2rem;
+    gap: 2rem;
+    padding-top: 1.35rem;
   }
 }
 
 .qv-feature-pill {
   display: flex;
   align-items: center;
-  gap: 0.45rem;
+  gap: 0.5rem;
   text-align: left;
 }
 
 .qv-feat-icon {
-  font-size: 1.15rem;
+  font-size: 1.25rem;
 }
 
 .qv-feat-label {
-  font-size: 0.72rem;
+  font-size: 0.78rem;
   font-weight: 600;
-  line-height: 1.2;
+  line-height: 1.25;
   color: #635c50;
 }
 
 /* =========================================================
-   VAULT ARCH & CEILING LAMP
+   VAULT ARCH & CEILING LAMP (Crisp, Unstretched Ratios)
    ========================================================= */
 .qv-hero-illustration {
   display: flex;
@@ -297,18 +299,19 @@
   align-items: center;
   position: relative;
   width: 100%;
-  max-width: 250px;
+  max-width: 260px;
   flex-shrink: 0;
 }
 
 @media (min-width: 820px) {
   .qv-hero-illustration {
     flex: 1;
-    max-width: 320px;
+    max-width: 360px;
+    margin-right: 1rem;
   }
 }
 
-/* Ceiling Lamp: Only shown on desktop */
+/* Ceiling Lamp: Always anchored cleanly to the top border of the hero card */
 .qv-hanging-lamp-fixture {
   display: none;
 }
@@ -317,7 +320,8 @@
   .qv-hanging-lamp-fixture {
     display: flex;
     position: absolute;
-    top: -2.2rem;
+    /* Pushes up past .qv-hero-brand and card top padding so cord touches top edge */
+    top: -6.6rem;
     left: 50%;
     transform: translateX(-50%);
     flex-direction: column;
@@ -329,7 +333,7 @@
 
 .qv-hanging-lamp-fixture::before {
   content: '';
-  width: 14px;
+  width: 16px;
   height: 4px;
   background-color: #121915;
   border-radius: 2px 2px 0 0;
@@ -337,22 +341,22 @@
 
 .qv-lamp-cord {
   width: 2.5px;
-  height: 58px;
+  height: 92px;
   background-color: #121915;
 }
 
 .qv-lamp-socket {
-  width: 9px;
+  width: 10px;
   height: 6px;
   background-color: #2b3830;
   border-radius: 2px 2px 0 0;
 }
 
 .qv-lamp-shade {
-  width: 44px;
-  height: 18px;
+  width: 48px;
+  height: 19px;
   background: linear-gradient(180deg, #121915 0%, #1e2922 100%);
-  border-radius: 22px 22px 3px 3px;
+  border-radius: 24px 24px 3px 3px;
   position: relative;
   box-shadow: 0 4px 10px rgba(0, 0, 0, 0.35);
 }
@@ -362,26 +366,26 @@
   height: 7px;
   background-color: #ffe08a;
   border-radius: 0 0 5px 5px;
-  box-shadow: 0 0 8px #ffc107, 0 0 16px rgba(255, 193, 7, 0.6);
+  box-shadow: 0 0 9px #ffc107, 0 0 18px rgba(255, 193, 7, 0.65);
   margin-top: -1px;
 }
 
 .qv-lamp-glow {
-  width: 90px;
-  height: 60px;
-  background: radial-gradient(ellipse at top, rgba(255, 214, 102, 0.32) 0%, rgba(255, 214, 102, 0.08) 50%, transparent 75%);
+  width: 105px;
+  height: 70px;
+  background: radial-gradient(ellipse at top, rgba(255, 214, 102, 0.34) 0%, rgba(255, 214, 102, 0.08) 50%, transparent 75%);
   position: absolute;
-  top: 76px;
+  top: 108px;
   border-radius: 50%;
   pointer-events: none;
 }
 
-/* Archway Container */
+/* Archway Container — Fixed natural aspect ratio */
 .qv-arch-backdrop {
-  width: 205px;
-  height: 245px;
+  width: 215px;
+  height: 255px;
   background: linear-gradient(180deg, #dfa384 0%, #d88965 100%);
-  border-radius: 105px 105px 20px 20px;
+  border-radius: 110px 110px 20px 20px;
   position: relative;
   display: flex;
   align-items: center;
@@ -391,15 +395,15 @@
 
 @media (min-width: 820px) {
   .qv-arch-backdrop {
-    width: 245px;
-    height: 290px;
-    border-radius: 125px 125px 22px 22px;
+    width: 275px;
+    height: 325px;
+    border-radius: 140px 140px 24px 24px;
   }
 }
 
 .qv-vault-cube {
-  width: 110px;
-  height: 120px;
+  width: 114px;
+  height: 124px;
   background-color: #1d2b24;
   border-radius: 16px;
   border: 3.5px solid #121915;
@@ -407,75 +411,87 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 12px 26px rgba(0, 0, 0, 0.32);
+  box-shadow: 0 14px 28px rgba(0, 0, 0, 0.32);
   position: relative;
   z-index: 2;
 }
 
 @media (min-width: 820px) {
   .qv-vault-cube {
-    width: 128px;
-    height: 136px;
-    border-radius: 18px;
+    width: 144px;
+    height: 154px;
+    border-radius: 20px;
+    border-width: 4px;
   }
 }
 
 .qv-vault-slot {
-  width: 38px;
+  width: 44px;
   height: 5px;
   background-color: #e56f3f;
   border-radius: 3px;
   position: absolute;
-  top: 14px;
+  top: 16px;
 }
 
 .qv-vault-lock {
-  font-size: 1.8rem;
+  font-size: 2rem;
   margin-top: 8px;
 }
 
 .qv-floating-cloud {
   position: absolute;
-  top: 12px;
-  left: 14px;
-  font-size: 1.3rem;
+  top: 16px;
+  left: 16px;
+  font-size: 1.45rem;
   opacity: 0.9;
 }
 
 .qv-floating-file {
   position: absolute;
   background: #ffffff;
-  padding: 4px 7px;
-  border-radius: 6px;
-  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.12);
-  font-size: 0.9rem;
+  padding: 5px 8px;
+  border-radius: 7px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.12);
+  font-size: 1.05rem;
   z-index: 3;
 }
 
 .file-left {
-  top: 50px;
-  left: -12px;
+  top: 62px;
+  left: -14px;
   transform: rotate(-8deg);
 }
 
 .file-right {
-  bottom: 40px;
-  right: -10px;
+  bottom: 48px;
+  right: -12px;
   transform: rotate(10deg);
 }
 
 .qv-foliage {
   position: absolute;
-  font-size: 1.6rem;
+  font-size: 1.75rem;
   z-index: 1;
 }
 
 .foliage-left {
   bottom: -6px;
-  left: -18px;
+  left: -20px;
 }
 
 .foliage-right {
   bottom: -6px;
-  right: -18px;
+  right: -20px;
+}
+
+.qv-brand-logo-img {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 1px solid #dfd3c3;
+  box-shadow: 0 3px 8px rgba(111, 78, 55, 0.16);
+  flex-shrink: 0;
+  display: block;
 }

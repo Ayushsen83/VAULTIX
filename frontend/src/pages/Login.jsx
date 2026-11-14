@@ -1,5 +1,4 @@
-
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import api from "../services/api";
 import OtpInput from "../components/OtpInput";
@@ -11,6 +10,7 @@ export default function Login() {
     password: "",
   });
 
+  const [sharedDevice, setSharedDevice] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [step, setStep] = useState("credentials");
   const [challengeToken, setChallengeToken] = useState("");
@@ -19,6 +19,21 @@ export default function Login() {
   const [loading, setLoading] = useState(false);
 
   const navigate = useNavigate();
+
+  // If Shared Device mode is active, wipe any browser storage when the tab closes
+  useEffect(() => {
+    if (!sharedDevice) return;
+
+    sessionStorage.setItem("vaultix_shared_device", "true");
+
+    const handleBeforeUnload = () => {
+      localStorage.clear();
+      sessionStorage.clear();
+    };
+
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
+  }, [sharedDevice]);
 
   const handleChange = (e) => {
     setFormData((previous) => ({
@@ -39,6 +54,12 @@ export default function Login() {
         password: formData.password,
       });
 
+      if (sharedDevice) {
+        sessionStorage.setItem("vaultix_shared_device", "true");
+      } else {
+        sessionStorage.removeItem("vaultix_shared_device");
+      }
+
       // If 2FA is enabled, the backend returns a restricted challenge.
       if (res.data?.requiresTwoFactor === true) {
         const temporaryChallenge = res.data?.challengeToken;
@@ -56,9 +77,11 @@ export default function Login() {
         return;
       }
 
-      // If 2FA is not enabled, the backend should already have set
-      // the authenticated HttpOnly cookie.
+      // If 2FA is not enabled, the backend sets the authenticated HttpOnly cookie.
       if (res.data?.success === true) {
+        if (sharedDevice) {
+          setFormData({ email: "", password: "" });
+        }
         navigate("/home", { replace: true });
         return;
       }
@@ -96,7 +119,7 @@ export default function Login() {
 
     try {
       const res = await api.post("/auth/2fa/verify-login", {
-         challengeToken,
+        challengeToken,
         token: code,
       });
 
@@ -104,9 +127,11 @@ export default function Login() {
         throw new Error("Two-factor verification failed.");
       }
 
-      // The backend must set the authenticated HttpOnly cookie.
       setChallengeToken("");
       setOtp(["", "", "", "", "", ""]);
+      if (sharedDevice) {
+        setFormData({ email: "", password: "" });
+      }
 
       navigate("/home", { replace: true });
     } catch (err) {
@@ -132,10 +157,14 @@ export default function Login() {
     <div className="qv-auth-page">
       <div className="qv-card-dark">
         <div className="qv-brand">
-          <div className="qv-brand-logo">V</div>
+          <img
+            src="/QuadravaulLogo.png"
+            alt="Vaultix Logo"
+            className="qv-brand-logo-img"
+          />
 
           <div className="qv-brand-meta">
-            <h3>Vaultrix</h3>
+            <h3>Vaultix</h3>
             <span>Your Digital Locker • By QuadraVault</span>
           </div>
         </div>
@@ -153,7 +182,11 @@ export default function Login() {
               </div>
             )}
 
-            <form onSubmit={handlePasswordSubmit} className="qv-form">
+            <form
+              onSubmit={handlePasswordSubmit}
+              className="qv-form"
+              autoComplete={sharedDevice ? "off" : "on"}
+            >
               <div className="qv-field">
                 <span className="qv-field-icon">✉️</span>
 
@@ -164,7 +197,7 @@ export default function Login() {
                   required
                   maxLength={255}
                   placeholder="Email address"
-                  autoComplete="email"
+                  autoComplete={sharedDevice ? "off" : "email"}
                   value={formData.email}
                   onChange={handleChange}
                 />
@@ -180,7 +213,7 @@ export default function Login() {
                   required
                   maxLength={128}
                   placeholder="Password"
-                  autoComplete="current-password"
+                  autoComplete={sharedDevice ? "new-password" : "current-password"}
                   value={formData.password}
                   onChange={handleChange}
                 />
@@ -198,15 +231,35 @@ export default function Login() {
               </div>
 
               <div className="qv-extra-actions">
-                <label className="qv-checkbox">
-                  <input type="checkbox" />
-                  Remember me
+                <label
+                  className="qv-checkbox"
+                  title="Disables browser autofill and wipes local storage when closing the tab"
+                >
+                  <input
+                    type="checkbox"
+                    checked={sharedDevice}
+                    onChange={(e) => setSharedDevice(e.target.checked)}
+                  />
+                  Shared device mode
                 </label>
 
                 <Link to="/forgot-password" className="qv-forgot-link">
                   Forgot password?
                 </Link>
               </div>
+
+              {sharedDevice && (
+                <p
+                  style={{
+                    fontSize: "0.74rem",
+                    color: "#e28766",
+                    margin: "-0.35rem 0 0.25rem 0",
+                    textAlign: "left",
+                  }}
+                >
+                  🛡️ Autofill disabled &amp; local data auto-wipes on tab close.
+                </p>
+              )}
 
               <button
                 type="submit"
