@@ -35,11 +35,11 @@ export default function Landing() {
         <div className="qv-brand qv-hero-brand">
           <img
             src="/QuadravaulLogo.png"
-            alt="Vaultrix Logo"
+            alt="Vaultix Logo"
             className="qv-brand-logo-img"
           />
           <div className="qv-brand-meta">
-            <h3>Vaultrix</h3>
+            <h3>Vaultix</h3>
             <span>Your Digital Locker • By QuadraVault</span>
           </div>
         </div>
