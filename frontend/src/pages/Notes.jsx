@@ -1,9 +1,20 @@
-
 import React, { useEffect, useState } from "react";
 import api, { refreshCsrfToken } from "../services/api";
 import "./Notes.css";
 
 const colors = ["yellow", "pink", "blue", "green", "purple"];
+
+// Generate initials from user's registered name
+const getInitials = (name = "") => {
+  const parts = String(name).trim().split(/\s+/).filter(Boolean);
+
+  return (
+    parts
+      .slice(0, 2)
+      .map((part) => part.charAt(0).toUpperCase())
+      .join("") || "U"
+  );
+};
 
 export default function Notes() {
   const [notes, setNotes] = useState([]);
@@ -12,12 +23,33 @@ export default function Notes() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
+  // Logged-in user's profile name
+  const [userName, setUserName] = useState("");
+
   const [showEditor, setShowEditor] = useState(false);
   const [editingNote, setEditingNote] = useState(null);
 
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
   const [saving, setSaving] = useState(false);
+
+  // Fetch logged-in user's profile
+  useEffect(() => {
+    const fetchUserProfile = async () => {
+      try {
+        const response = await api.get("/users/me");
+        const user = response.data?.user;
+
+        if (user?.name) {
+          setUserName(user.name);
+        }
+      } catch (error) {
+        console.error("Unable to fetch user profile:", error);
+      }
+    };
+
+    fetchUserProfile();
+  }, []);
 
   // HttpOnly access cookie is automatically sent by Axios.
   // No manual access-token handling is required.
@@ -98,7 +130,6 @@ export default function Notes() {
     try {
       setSaving(true);
 
-      // Obtain CSRF token before mutation.
       await requireCsrfToken();
 
       if (editingNote) {
@@ -171,31 +202,6 @@ export default function Notes() {
   return (
     <div className="notes-layout">
 
-      {/* SIDEBAR */}
-      {/* <aside className="notes-sidebar">
-
-        <div className="notes-brand">
-          <div className="brand-icon">V</div>
-
-          <div>
-            <h2>VAULTIX</h2>
-            <span>Your Digital Locker</span>
-          </div>
-        </div>
-
-        <nav className="notes-navigation">
-          <a href="/home">⌂ <span>Home</span></a>
-          <a href="/Documents">▤ <span>Documents</span></a>
-          <a href="/notes" className="active">▧ <span>Notes</span></a>
-          <a href="/profile">♙ <span>Profile</span></a>
-        </nav>
-
-        <div className="notes-sidebar-bottom">
-          <a href="/login">↪ <span>Logout</span></a>
-        </div>
-
-      </aside> */}
-
       {/* MAIN CONTENT */}
       <main className="notes-main">
 
@@ -222,7 +228,9 @@ export default function Notes() {
               })}
             </span>
 
-            <div className="notes-avatar">V</div>
+            <div className="notes-avatar">
+              {getInitials(userName)}
+            </div>
 
           </div>
 
