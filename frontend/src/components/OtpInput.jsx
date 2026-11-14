@@ -41,6 +41,9 @@ export default function OtpInput({ otp, setOtp, onComplete, disabled }) {
     <div style={styles.container} onPaste={handlePaste}>
       {Array.from({ length: 6 }).map((_, i) => (
         <input
+          id = {`otp-input-${i}`}
+          aria-label={`OTP input ${i + 1}`}
+          name={`otp-input-${i}`}
           key={i}
           ref={(el) => (inputRefs.current[i] = el)}
           type="text"

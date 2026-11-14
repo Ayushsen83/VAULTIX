@@ -463,6 +463,8 @@ export default function Home() {
       <main className="dashboard-main">
         <div className="dashboard-content">
           <Header
+            id ="locker-global-search"
+            name="lockerGlobalSearch"
             userName={user?.name}
             showSearch={true}
             searchPlaceholder="Search your locker..."
@@ -597,6 +599,8 @@ export default function Home() {
 
               {/* Hidden file input */}
               <input
+                id ="home-quick-upload"
+                name ="homeQuickUpload"
                 ref={fileInputRef}
                 type="file"
                 accept=".pdf,.mp3,.wav,.m4a,application/pdf,audio/mpeg,audio/wav,audio/mp4"

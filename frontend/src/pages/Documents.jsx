@@ -324,6 +324,7 @@ export default function Documents() {
             <span>⌕</span>
 
             <input
+              id="document-search"
               type="text"
               placeholder="Search your documents..."
               value={search}
