@@ -12,6 +12,7 @@ const { doubleCsrfProtection } = require("./middleware/csrf.middleware.js");
 const csrfRoutes = require("./routes/csrf.routes");
 const filesRoutes = require("./routes/files.routes");
 const usersRoutes = require("./routes/users.routes");
+const searchRoutes = require("./routes/search.routes");
 const {
   generalLimiter,
   loginLimiter,
@@ -65,7 +66,9 @@ app.get("/debug/client-ip", (req, res) => {
 app.use("/api/auth/register", registerLimiter, registerRoutes);
 app.use("/api/auth/login", loginLimiter, loginRoutes);
 app.use("/api/csrf", generalLimiter, csrfRoutes);
-
+// 4. Search routes
+app.use("/api/search", generalLimiter,  searchRoutes);
+// 5. Protected notes API
 // 4. Protected notes API
 app.use(
   "/api/notes",
@@ -76,7 +79,7 @@ app.use(
 );
 
 // 5. Protected files API
-app.use("/api/files", generalLimiter, uploadLimiter, filesRoutes);
+app.use("/api/files",  filesRoutes);
 
 // 6. Protected users API
 app.use("/api/users", generalLimiter, usersRoutes);
