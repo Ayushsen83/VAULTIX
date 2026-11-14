@@ -144,3 +144,26 @@
     padding: 0 10px;
   }
 }
+
+@media (max-width: 768px) {
+  .app-header,
+  .dashboard-header,
+  header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    padding-left: 56px; /* Reserves space for the 44px hamburger button on the left */
+    width: 100%;
+  }
+
+  .header-search {
+    flex: 1;
+    width: 100%;
+    min-width: 0;
+    max-width: none;
+    min-height: 44px;
+    padding: 0 12px;
+    gap: 8px;
+  }
+}
