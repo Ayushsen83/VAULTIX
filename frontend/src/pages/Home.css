@@ -21,7 +21,7 @@ html {
   width: 100%;
   min-height: 100vh;
   min-height: 100dvh;
-  background: #f7f5ef;
+  background: #f8f4ec;
   color: #252a2d;
   font-family: "DM Sans", sans-serif;
   font-size: 15px;
@@ -743,7 +743,7 @@ button.quick-action-card {
   min-height: 100vh;
   min-height: 100dvh;
   padding: 25px;
-  background: #f7f5ef;
+  background: #f8f4ec;
   color: #35423b;
   font-family: "DM Sans", sans-serif;
   text-align: center;

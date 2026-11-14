@@ -2,7 +2,7 @@ css
 .documents-layout {
   min-height: 100vh;
   display: flex;
-  background: #f6f3eb;
+   background: #f8f4ec;
   color: #25352d;
   font-family: Inter, Arial, sans-serif;
 }
