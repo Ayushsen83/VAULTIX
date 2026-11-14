@@ -205,6 +205,8 @@ export default function Notes() {
             <span>⌕</span>
 
             <input
+              id ="notes-search"
+              name="notesSearch"
               type="text"
               placeholder="Search your notes..."
               value={search}
