@@ -1,10 +1,10 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import api, { refreshCsrfToken } from "../services/api";
 import "./Notes.css";
 import NotesSkeleton from "../components/skeletons/NotesSkeleton";
+
 const colors = ["yellow", "pink", "blue", "green", "purple"];
 
-// Generate initials from user's registered name
 const getInitials = (name = "") => {
   const parts = String(name).trim().split(/\s+/).filter(Boolean);
 
@@ -22,8 +22,6 @@ export default function Notes() {
   const [sort, setSort] = useState("updated_at");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-
-  // Logged-in user's profile name
   const [userName, setUserName] = useState("");
 
   const [showEditor, setShowEditor] = useState(false);
@@ -33,7 +31,10 @@ export default function Notes() {
   const [content, setContent] = useState("");
   const [saving, setSaving] = useState(false);
 
-  // Fetch logged-in user's profile
+  // Search dropdown
+  const [showSearchResults, setShowSearchResults] = useState(false);
+  const searchRef = useRef(null);
+
   useEffect(() => {
     const fetchUserProfile = async () => {
       try {
@@ -51,8 +52,6 @@ export default function Notes() {
     fetchUserProfile();
   }, []);
 
-  // HttpOnly access cookie is automatically sent by Axios.
-  // No manual access-token handling is required.
   const requireCsrfToken = async () => {
     const token = await refreshCsrfToken();
 
@@ -63,7 +62,7 @@ export default function Notes() {
     return token;
   };
 
-  // Fetch notes
+  // Fetch only Notes
   const fetchNotes = async () => {
     try {
       setLoading(true);
@@ -86,35 +85,68 @@ export default function Notes() {
       } else {
         setError(
           err.response?.data?.message ||
-            "Unable to load notes. Please try again.",
+            "Unable to load notes. Please try again."
         );
       }
+
+      setNotes([]);
     } finally {
       setLoading(false);
     }
   };
 
+  // Small delay while typing
   useEffect(() => {
-    fetchNotes();
+    const timer = setTimeout(() => {
+      fetchNotes();
+    }, 300);
+
+    return () => clearTimeout(timer);
   }, [search, sort]);
 
-  // Create new note
+  // Close search dropdown when clicking outside
+  useEffect(() => {
+    const handleOutsideClick = (event) => {
+      if (searchRef.current && !searchRef.current.contains(event.target)) {
+        setShowSearchResults(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleOutsideClick);
+
+    return () => {
+      document.removeEventListener("mousedown", handleOutsideClick);
+    };
+  }, []);
+
+  // Close dropdown using Escape
+  const handleSearchKeyDown = (event) => {
+    if (event.key === "Escape") {
+      setShowSearchResults(false);
+    }
+
+    if (event.key === "Enter" && notes.length > 0) {
+      openEditNote(notes[0]);
+    }
+  };
+
   const openNewNote = () => {
     setEditingNote(null);
     setTitle("");
     setContent("");
     setShowEditor(true);
+    setShowSearchResults(false);
   };
 
-  // Edit existing note
+  // Open selected search result in Edit modal
   const openEditNote = (note) => {
     setEditingNote(note);
     setTitle(note.title);
     setContent(note.content || "");
     setShowEditor(true);
+    setShowSearchResults(false);
   };
 
-  // Save note
   const saveNote = async (e) => {
     e.preventDefault();
 
@@ -152,17 +184,16 @@ export default function Notes() {
       alert(
         err.response?.data?.message ||
           err.message ||
-          "Something went wrong while saving your note.",
+          "Something went wrong while saving your note."
       );
     } finally {
       setSaving(false);
     }
   };
 
-  // Delete note
   const deleteNote = async (id) => {
     const confirmed = window.confirm(
-      "Are you sure you want to delete this note?",
+      "Are you sure you want to delete this note?"
     );
 
     if (!confirmed) return;
@@ -177,12 +208,11 @@ export default function Notes() {
       console.error("Delete note error:", err);
 
       alert(
-        err.response?.data?.message || err.message || "Unable to delete note.",
+        err.response?.data?.message || err.message || "Unable to delete note."
       );
     }
   };
 
-  // Format date
   const formatDate = (date) => {
     if (!date) return "";
 
@@ -195,23 +225,88 @@ export default function Notes() {
 
   return (
     <div className="notes-layout">
-
-      
-
-      {/* MAIN CONTENT */}
       <main className="notes-main">
+        {/* HEADER */}
         <header className="notes-header">
-          <div className="notes-search">
-            <span>⌕</span>
+          <div className="notes-search-wrapper" ref={searchRef}>
+            <div className="notes-search">
+              <span>⌕</span>
 
-            <input
-              id ="notes-search"
-              name="notesSearch"
-              type="text"
-              placeholder="Search your notes..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-            />
+              <input
+                id="notes-search"
+                name="notesSearch"
+                type="text"
+                placeholder="Search your notes..."
+                value={search}
+                autoComplete="off"
+                onChange={(e) => {
+                  setSearch(e.target.value);
+                  setShowSearchResults(true);
+                }}
+                onFocus={() => {
+                  if (search.trim()) {
+                    setShowSearchResults(true);
+                  }
+                }}
+                onKeyDown={handleSearchKeyDown}
+              />
+
+              {search && (
+                <button
+                  type="button"
+                  className="notes-search-clear"
+                  onClick={() => {
+                    setSearch("");
+                    setShowSearchResults(false);
+                    document.getElementById("notes-search")?.focus();
+                  }}
+                  aria-label="Clear search"
+                >
+                  ×
+                </button>
+              )}
+            </div>
+
+            {/* SEARCH RESULTS DROPDOWN */}
+            {showSearchResults && search.trim() && (
+              <div className="notes-search-dropdown">
+                <div className="notes-search-dropdown-heading">
+                  <span>SEARCH RESULTS</span>
+                  <span>{loading ? "Searching..." : `${notes.length} found`}</span>
+                </div>
+
+                {loading ? (
+                  <div className="notes-search-message">
+                    Searching your notes...
+                  </div>
+                ) : notes.length > 0 ? (
+                  notes.slice(0, 10).map((note) => (
+                    <button
+                      type="button"
+                      className="notes-search-result"
+                      key={note.id}
+                      onClick={() => openEditNote(note)}
+                    >
+                      <span className="notes-result-icon">✎</span>
+
+                      <span className="notes-result-details">
+                        <strong>{note.title}</strong>
+                        <small>
+                          {note.content || "No content added yet."}
+                        </small>
+                      </span>
+
+                      <span className="notes-result-arrow">→</span>
+                    </button>
+                  ))
+                ) : (
+                  <div className="notes-search-message">
+                    <span>✎</span>
+                    <p>No matching notes found.</p>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
 
           <div className="notes-header-actions">
@@ -223,10 +318,7 @@ export default function Notes() {
               })}
             </span>
 
-            <div className="notes-avatar">
-              {getInitials(userName)}
-            </div>
-
+            <div className="notes-avatar">{getInitials(userName)}</div>
           </div>
         </header>
 
@@ -234,9 +326,7 @@ export default function Notes() {
         <section className="notes-heading">
           <div>
             <span className="notes-eyebrow">YOUR PERSONAL SPACE</span>
-
             <h1>My Notes</h1>
-
             <p>Save your thoughts, ideas and important points.</p>
           </div>
 
@@ -256,20 +346,17 @@ export default function Notes() {
             ) : (
               <strong>{notes.length}</strong>
             )}
-
             <span> Total Notes</span>
           </div>
 
           <div>
             <label htmlFor="notes-sort">Sort by: </label>
-
             <select
               id="notes-sort"
               value={sort}
               onChange={(e) => setSort(e.target.value)}
             >
               <option value="updated_at">Recently Updated</option>
-
               <option value="created_at">Recently Created</option>
             </select>
           </div>
@@ -281,17 +368,13 @@ export default function Notes() {
         ) : error ? (
           <div className="notes-message notes-error">
             {error}
-
             <button onClick={fetchNotes}>Try Again</button>
           </div>
         ) : notes.length === 0 ? (
           <div className="notes-empty">
             <div className="empty-icon">✎</div>
-
             <h2>No notes found</h2>
-
             <p>Your ideas deserve a safe place. Create your first note!</p>
-
             <button onClick={openNewNote}>+ Create Your First Note</button>
           </div>
         ) : (
@@ -350,7 +433,6 @@ export default function Notes() {
             <div className="modal-heading">
               <div>
                 <span>YOUR PERSONAL SPACE</span>
-
                 <h2>{editingNote ? "Edit Note" : "Create New Note"}</h2>
               </div>
 
