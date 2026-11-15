@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import api from "../services/api";
@@ -53,12 +52,12 @@ export default function Header({
     };
   }, [userName]);
 
-  // Keep local search synchronized with parent value, if provided.
+  // Keep local search synchronized with parent value.
   useEffect(() => {
     setQuery(searchValue);
   }, [searchValue]);
 
-  // Global search API with debounce.
+  // Global search API with debounce and request cancellation.
   useEffect(() => {
     const keyword = query.trim();
 
@@ -71,10 +70,14 @@ export default function Header({
 
     let isActive = true;
 
+    const controller = new AbortController();
+
+    setLoading(false);
+    setSearchError("");
+
     const timer = setTimeout(async () => {
       try {
         setLoading(true);
-        setSearchError("");
 
         const response = await api.get("/search", {
           params: {
@@ -83,20 +86,22 @@ export default function Header({
             page: 1,
             limit: 10,
           },
+          signal: controller.signal,
         });
 
         if (!isActive) return;
 
         setResults(response.data?.results || []);
       } catch (error) {
-        if (!isActive) return;
+        if (!isActive || controller.signal.aborted) return;
 
         console.error("Global search failed:", error);
 
         setResults([]);
+
         setSearchError(
           error.response?.data?.message ||
-          "Unable to search right now. Please try again."
+            "Unable to search right now. Please try again."
         );
       } finally {
         if (isActive) {
@@ -108,9 +113,11 @@ export default function Header({
     return () => {
       isActive = false;
       clearTimeout(timer);
+      controller.abort();
     };
   }, [query, showSearch]);
 
+  // Handle search input changes.
   const handleSearchChange = (event) => {
     const value = event.target.value;
 
@@ -152,10 +159,8 @@ export default function Header({
 
   return (
     <header className="header">
-
       {showSearch && (
         <div className="header-search-wrapper">
-
           <div className="header-search">
             <span
               className="header-search-icon"
@@ -165,7 +170,7 @@ export default function Header({
             </span>
 
             <input
-              id ="global-search"
+              id="global-search"
               name="globalSearch"
               type="search"
               placeholder={searchPlaceholder}
@@ -179,12 +184,10 @@ export default function Header({
             {loading && (
               <span className="header-search-loader" />
             )}
-
           </div>
 
           {showResults && query.trim().length >= 2 && (
             <div className="global-search-dropdown">
-
               {loading && (
                 <div className="global-search-message">
                   Searching Notes and Documents...
@@ -243,15 +246,12 @@ export default function Header({
                   ))}
                 </>
               )}
-
             </div>
           )}
-
         </div>
       )}
 
       <div className="header-actions">
-
         {/* Notification Icon */}
         <span
           className="header-notification"
@@ -286,7 +286,6 @@ export default function Header({
         >
           {initial}
         </button>
-
       </div>
     </header>
   );
