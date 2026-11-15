@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import api from "../services/api";
 import "./Header.css";
@@ -12,6 +12,8 @@ export default function Header({
 }) {
   const navigate = useNavigate();
 
+  const searchInputRef = useRef(null);
+
   const [accountName, setAccountName] = useState(userName);
   const [query, setQuery] = useState(searchValue);
   const [results, setResults] = useState([]);
@@ -19,12 +21,14 @@ export default function Header({
   const [searchError, setSearchError] = useState("");
   const [showResults, setShowResults] = useState(false);
 
+  // Keep avatar updated when parent receives user profile.
   useEffect(() => {
     if (userName) {
       setAccountName(userName);
     }
   }, [userName]);
 
+  // Fetch authenticated user's name when not provided.
   useEffect(() => {
     if (userName) return;
 
@@ -50,11 +54,12 @@ export default function Header({
     };
   }, [userName]);
 
+  // Keep local search synchronized with parent value.
   useEffect(() => {
     setQuery(searchValue);
   }, [searchValue]);
 
-  // Debounced global search with request cancellation.
+  // Global search with debounce and request cancellation.
   useEffect(() => {
     const keyword = query.trim();
 
@@ -94,6 +99,7 @@ export default function Header({
         console.error("Global search failed:", error);
 
         setResults([]);
+
         setSearchError(
           error.response?.data?.message ||
             "Unable to search right now. Please try again."
@@ -112,30 +118,37 @@ export default function Header({
     };
   }, [query, showSearch]);
 
+  // Handle search input changes.
   const handleSearchChange = (event) => {
     const value = event.target.value;
 
     setQuery(value);
     setShowResults(true);
+
     onSearchChange?.(value);
   };
 
-  // Clear search input and results.
+  // Clear search and automatically focus the input.
   const handleClearSearch = () => {
     setQuery("");
     setResults([]);
     setSearchError("");
     setLoading(false);
     setShowResults(false);
+
     onSearchChange?.("");
+
+    searchInputRef.current?.focus();
   };
 
+  // Handle keyboard actions.
   const handleSearchKeyDown = (event) => {
     if (event.key === "Escape") {
       setShowResults(false);
     }
   };
 
+  // Navigate to the relevant section.
   const handleResultClick = (result) => {
     setShowResults(false);
 
@@ -178,6 +191,7 @@ export default function Header({
             </span>
 
             <input
+              ref={searchInputRef}
               id="global-search"
               name="globalSearch"
               type="search"
@@ -266,7 +280,9 @@ export default function Header({
                       </span>
 
                       <span className="global-search-result-type">
-                        {result.type === "note" ? "Note" : "Document"}
+                        {result.type === "note"
+                          ? "Note"
+                          : "Document"}
                       </span>
                     </button>
                   ))}
@@ -278,6 +294,7 @@ export default function Header({
       )}
 
       <div className="header-actions">
+        {/* Notification Icon */}
         <span
           className="header-notification"
           role="img"
@@ -301,6 +318,7 @@ export default function Header({
           </svg>
         </span>
 
+        {/* Profile Avatar */}
         <button
           type="button"
           className="header-avatar"
