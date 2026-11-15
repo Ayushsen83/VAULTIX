@@ -78,6 +78,29 @@ export default function Header({
     };
   }, []);
 
+  // Focus search using Ctrl + K or Cmd + K
+  useEffect(() => {
+    const handleKeyboardShortcut = (event) => {
+      if (
+        (event.ctrlKey || event.metaKey) &&
+        event.key.toLowerCase() === "k"
+      ) {
+        event.preventDefault();
+
+        if (showSearch) {
+          searchInputRef.current?.focus();
+          setShowResults(true);
+        }
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyboardShortcut);
+
+    return () => {
+      window.removeEventListener("keydown", handleKeyboardShortcut);
+    };
+  }, [showSearch]);
+
   // Search notes and documents
   useEffect(() => {
     const keyword = query.trim();
@@ -118,6 +141,7 @@ export default function Header({
         console.error("Search error:", error);
 
         setResults([]);
+
         setSearchError(
           error.response?.data?.message ||
             "Unable to search right now. Please try again."
