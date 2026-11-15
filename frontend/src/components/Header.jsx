@@ -13,6 +13,7 @@ export default function Header({
   const navigate = useNavigate();
 
   const searchInputRef = useRef(null);
+  const searchWrapperRef = useRef(null);
 
   const [accountName, setAccountName] = useState(userName);
   const [query, setQuery] = useState(searchValue);
@@ -21,14 +22,14 @@ export default function Header({
   const [searchError, setSearchError] = useState("");
   const [showResults, setShowResults] = useState(false);
 
-  // Keep avatar updated when parent receives user profile.
+  // Update account name
   useEffect(() => {
     if (userName) {
       setAccountName(userName);
     }
   }, [userName]);
 
-  // Fetch authenticated user's name when not provided.
+  // Fetch logged-in user's name
   useEffect(() => {
     if (userName) return;
 
@@ -54,12 +55,30 @@ export default function Header({
     };
   }, [userName]);
 
-  // Keep local search synchronized with parent value.
+  // Sync search value
   useEffect(() => {
     setQuery(searchValue);
   }, [searchValue]);
 
-  // Global search with debounce and request cancellation.
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (
+        searchWrapperRef.current &&
+        !searchWrapperRef.current.contains(event.target)
+      ) {
+        setShowResults(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, []);
+
+  // Search notes and documents
   useEffect(() => {
     const keyword = query.trim();
 
@@ -96,10 +115,9 @@ export default function Header({
       } catch (error) {
         if (!isActive || controller.signal.aborted) return;
 
-        console.error("Global search failed:", error);
+        console.error("Search error:", error);
 
         setResults([]);
-
         setSearchError(
           error.response?.data?.message ||
             "Unable to search right now. Please try again."
@@ -118,7 +136,7 @@ export default function Header({
     };
   }, [query, showSearch]);
 
-  // Handle search input changes.
+  // Handle search input
   const handleSearchChange = (event) => {
     const value = event.target.value;
 
@@ -128,7 +146,7 @@ export default function Header({
     onSearchChange?.(value);
   };
 
-  // Clear search and automatically focus the input.
+  // Clear search
   const handleClearSearch = () => {
     setQuery("");
     setResults([]);
@@ -141,14 +159,14 @@ export default function Header({
     searchInputRef.current?.focus();
   };
 
-  // Handle keyboard actions.
+  // Close dropdown using Escape key
   const handleSearchKeyDown = (event) => {
     if (event.key === "Escape") {
       setShowResults(false);
     }
   };
 
-  // Navigate to the relevant section.
+  // Navigate to selected result
   const handleResultClick = (result) => {
     setShowResults(false);
 
@@ -169,6 +187,7 @@ export default function Header({
     }
   };
 
+  // Generate avatar initials
   const initial =
     accountName
       ?.trim()
@@ -181,7 +200,10 @@ export default function Header({
   return (
     <header className="header">
       {showSearch && (
-        <div className="header-search-wrapper">
+        <div
+          className="header-search-wrapper"
+          ref={searchWrapperRef}
+        >
           <div className="header-search">
             <span
               className="header-search-icon"
@@ -280,9 +302,7 @@ export default function Header({
                       </span>
 
                       <span className="global-search-result-type">
-                        {result.type === "note"
-                          ? "Note"
-                          : "Document"}
+                        {result.type === "note" ? "Note" : "Document"}
                       </span>
                     </button>
                   ))}
@@ -294,7 +314,6 @@ export default function Header({
       )}
 
       <div className="header-actions">
-        {/* Notification Icon */}
         <span
           className="header-notification"
           role="img"
@@ -308,17 +327,15 @@ export default function Header({
             viewBox="0 0 24 24"
             fill="none"
             stroke="currentColor"
-            strokeWidth="1.8"
+            strokeWidth="2"
             strokeLinecap="round"
             strokeLinejoin="round"
-            aria-hidden="true"
           >
             <path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9" />
             <path d="M10 21h4" />
           </svg>
         </span>
 
-        {/* Profile Avatar */}
         <button
           type="button"
           className="header-avatar"
