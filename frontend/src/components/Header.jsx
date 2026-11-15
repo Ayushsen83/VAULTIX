@@ -19,14 +19,12 @@ export default function Header({
   const [searchError, setSearchError] = useState("");
   const [showResults, setShowResults] = useState(false);
 
-  // Keep avatar updated when parent receives user profile.
   useEffect(() => {
     if (userName) {
       setAccountName(userName);
     }
   }, [userName]);
 
-  // Fetch authenticated user's name when not provided.
   useEffect(() => {
     if (userName) return;
 
@@ -52,12 +50,11 @@ export default function Header({
     };
   }, [userName]);
 
-  // Keep local search synchronized with parent value.
   useEffect(() => {
     setQuery(searchValue);
   }, [searchValue]);
 
-  // Global search with debounce and request cancellation.
+  // Debounced global search with request cancellation.
   useEffect(() => {
     const keyword = query.trim();
 
@@ -115,24 +112,30 @@ export default function Header({
     };
   }, [query, showSearch]);
 
-  // Handle search input changes.
   const handleSearchChange = (event) => {
     const value = event.target.value;
 
     setQuery(value);
     setShowResults(true);
-
     onSearchChange?.(value);
   };
 
-  // Handle keyboard actions in search.
+  // Clear search input and results.
+  const handleClearSearch = () => {
+    setQuery("");
+    setResults([]);
+    setSearchError("");
+    setLoading(false);
+    setShowResults(false);
+    onSearchChange?.("");
+  };
+
   const handleSearchKeyDown = (event) => {
     if (event.key === "Escape") {
       setShowResults(false);
     }
   };
 
-  // Navigate to the relevant section.
   const handleResultClick = (result) => {
     setShowResults(false);
 
@@ -186,6 +189,25 @@ export default function Header({
               aria-label={searchPlaceholder}
               aria-expanded={showResults}
             />
+
+            {query.length > 0 && (
+              <button
+                type="button"
+                className="header-search-clear"
+                onClick={handleClearSearch}
+                aria-label="Clear search"
+                title="Clear search"
+                style={{
+                  background: "none",
+                  border: "none",
+                  cursor: "pointer",
+                  fontSize: "20px",
+                  padding: "4px 8px",
+                }}
+              >
+                ×
+              </button>
+            )}
 
             {loading && (
               <span className="header-search-loader" />
@@ -244,9 +266,7 @@ export default function Header({
                       </span>
 
                       <span className="global-search-result-type">
-                        {result.type === "note"
-                          ? "Note"
-                          : "Document"}
+                        {result.type === "note" ? "Note" : "Document"}
                       </span>
                     </button>
                   ))}
@@ -258,7 +278,6 @@ export default function Header({
       )}
 
       <div className="header-actions">
-        {/* Notification Icon */}
         <span
           className="header-notification"
           role="img"
@@ -282,7 +301,6 @@ export default function Header({
           </svg>
         </span>
 
-        {/* Profile Avatar */}
         <button
           type="button"
           className="header-avatar"
