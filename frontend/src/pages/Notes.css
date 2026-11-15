@@ -115,8 +115,9 @@
 }
 
 .notes-heading h1 {
-  font-family: "Playfair Display", Georgia, serif;
+  font-family: Inter, Arial, sans-serif;
   font-size: clamp(28px, 3vw, 40px);
+  font-weight: 700;
   line-height: 1.2;
   margin: 8px 0 6px;
   color: #202c26;

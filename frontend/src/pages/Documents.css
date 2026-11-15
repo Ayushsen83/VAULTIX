@@ -1,3 +1,4 @@
+css
 * {
   box-sizing: border-box;
 }
@@ -115,16 +116,16 @@
 }
 
 .documents-heading h1 {
-  font-family: "Playfair Display", Georgia, serif;
+  font-family: Inter, Arial, sans-serif;
   font-size: clamp(28px, 3vw, 40px);
   line-height: 1.2;
   font-weight: 700;
   margin: 8px 0 6px;
-  color: #203b30;
+  color: #202c26;
 }
 
 .documents-heading h1 span {
-  color: #c47f5d;
+  color: #c98262;
 }
 
 .documents-heading p {
