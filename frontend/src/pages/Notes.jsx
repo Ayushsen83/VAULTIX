@@ -45,25 +45,62 @@ export default function Notes() {
     }
   });
 
-  // Save pinned notes in browser storage
+  // Favourite notes
+  const [favoriteIds, setFavoriteIds] = useState(() => {
+    try {
+      const saved = localStorage.getItem("vaultix-favorite-notes");
+      return saved ? JSON.parse(saved) : [];
+    } catch {
+      return [];
+    }
+  });
+
+  // Save pinned notes
   useEffect(() => {
     localStorage.setItem("vaultix-pinned-notes", JSON.stringify(pinnedIds));
   }, [pinnedIds]);
 
-  // Keep pinned notes at the top
+  // Save favourite notes
+  useEffect(() => {
+    localStorage.setItem(
+      "vaultix-favorite-notes",
+      JSON.stringify(favoriteIds)
+    );
+  }, [favoriteIds]);
+
+  // Sort: Pinned first, then favourites, then normal notes
   const sortedNotes = [...notes].sort((a, b) => {
     const aPinned = pinnedIds.includes(String(a.id));
     const bPinned = pinnedIds.includes(String(b.id));
 
-    return Number(bPinned) - Number(aPinned);
+    if (aPinned !== bPinned) {
+      return Number(bPinned) - Number(aPinned);
+    }
+
+    const aFavorite = favoriteIds.includes(String(a.id));
+    const bFavorite = favoriteIds.includes(String(b.id));
+
+    return Number(bFavorite) - Number(aFavorite);
   });
 
+  // Pin / Unpin
   const togglePin = (noteId) => {
     const id = String(noteId);
 
     setPinnedIds((previous) =>
       previous.includes(id)
-        ? previous.filter((pinnedId) => pinnedId !== id)
+        ? previous.filter((item) => item !== id)
+        : [...previous, id]
+    );
+  };
+
+  // Favourite / Unfavourite
+  const toggleFavorite = (noteId) => {
+    const id = String(noteId);
+
+    setFavoriteIds((previous) =>
+      previous.includes(id)
+        ? previous.filter((item) => item !== id)
         : [...previous, id]
     );
   };
@@ -95,7 +132,7 @@ export default function Notes() {
     return token;
   };
 
-  // Fetch only Notes
+  // Fetch Notes
   const fetchNotes = async () => {
     try {
       setLoading(true);
@@ -128,7 +165,7 @@ export default function Notes() {
     }
   };
 
-  // Small delay while typing
+  // Search delay
   useEffect(() => {
     const timer = setTimeout(() => {
       fetchNotes();
@@ -137,7 +174,7 @@ export default function Notes() {
     return () => clearTimeout(timer);
   }, [search, sort]);
 
-  // Close search dropdown when clicking outside
+  // Close dropdown outside click
   useEffect(() => {
     const handleOutsideClick = (event) => {
       if (searchRef.current && !searchRef.current.contains(event.target)) {
@@ -152,7 +189,6 @@ export default function Notes() {
     };
   }, []);
 
-  // Close dropdown using Escape
   const handleSearchKeyDown = (event) => {
     if (event.key === "Escape") {
       setShowSearchResults(false);
@@ -171,7 +207,6 @@ export default function Notes() {
     setShowSearchResults(false);
   };
 
-  // Open selected search result in Edit modal
   const openEditNote = (note) => {
     setEditingNote(note);
     setTitle(note.title);
@@ -180,6 +215,7 @@ export default function Notes() {
     setShowSearchResults(false);
   };
 
+  // Save Note
   const saveNote = async (e) => {
     e.preventDefault();
 
@@ -224,6 +260,7 @@ export default function Notes() {
     }
   };
 
+  // Delete Note
   const deleteNote = async (id) => {
     const confirmed = window.confirm(
       "Are you sure you want to delete this note?"
@@ -236,8 +273,14 @@ export default function Notes() {
 
       await api.delete(`/notes/${id}`);
 
+      const noteId = String(id);
+
       setPinnedIds((previous) =>
-        previous.filter((pinnedId) => pinnedId !== String(id))
+        previous.filter((item) => item !== noteId)
+      );
+
+      setFavoriteIds((previous) =>
+        previous.filter((item) => item !== noteId)
       );
 
       await fetchNotes();
@@ -304,7 +347,7 @@ export default function Notes() {
               )}
             </div>
 
-            {/* SEARCH RESULTS DROPDOWN */}
+            {/* SEARCH RESULTS */}
             {showSearchResults && search.trim() && (
               <div className="notes-search-dropdown">
                 <div className="notes-search-dropdown-heading">
@@ -385,16 +428,25 @@ export default function Notes() {
             ) : (
               <strong>{notes.length}</strong>
             )}
+
             <span> Total Notes</span>
+
             {pinnedIds.length > 0 && (
               <span style={{ marginLeft: "14px", color: "#9a7133" }}>
                 📌 {pinnedIds.length} Pinned
+              </span>
+            )}
+
+            {favoriteIds.length > 0 && (
+              <span style={{ marginLeft: "14px", color: "#d94b68" }}>
+                ❤️ {favoriteIds.length} Favourite
               </span>
             )}
           </div>
 
           <div>
             <label htmlFor="notes-sort">Sort by: </label>
+
             <select
               id="notes-sort"
               value={sort}
@@ -425,6 +477,7 @@ export default function Notes() {
           <section className="notes-grid">
             {sortedNotes.map((note, index) => {
               const isPinned = pinnedIds.includes(String(note.id));
+              const isFavorite = favoriteIds.includes(String(note.id));
 
               return (
                 <article
@@ -443,6 +496,35 @@ export default function Notes() {
                         gap: "8px",
                       }}
                     >
+                      {/* FAVOURITE BUTTON */}
+                      <button
+                        type="button"
+                        onClick={() => toggleFavorite(note.id)}
+                        title={
+                          isFavorite
+                            ? "Remove from favourites"
+                            : "Add to favourites"
+                        }
+                        aria-label={
+                          isFavorite
+                            ? "Remove from favourites"
+                            : "Add to favourites"
+                        }
+                        style={{
+                          border: "none",
+                          background: isFavorite ? "#ffe5eb" : "transparent",
+                          color: isFavorite ? "#e04465" : "#888",
+                          borderRadius: "8px",
+                          padding: "7px 9px",
+                          cursor: "pointer",
+                          fontSize: "19px",
+                          transition: "all 0.2s ease",
+                        }}
+                      >
+                        {isFavorite ? "❤️" : "♡"}
+                      </button>
+
+                      {/* PIN BUTTON */}
                       <button
                         type="button"
                         onClick={() => togglePin(note.id)}
@@ -461,6 +543,7 @@ export default function Notes() {
                         {isPinned ? "📌" : "📍"}
                       </button>
 
+                      {/* EDIT BUTTON */}
                       <button
                         className="note-menu-btn"
                         onClick={() => openEditNote(note)}
