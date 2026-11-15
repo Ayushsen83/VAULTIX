@@ -1,10 +1,10 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import api, { refreshCsrfToken } from "../services/api";
 import "./Notes.css";
 import NotesSkeleton from "../components/skeletons/NotesSkeleton";
+
 const colors = ["yellow", "pink", "blue", "green", "purple"];
 
-// Generate initials from user's registered name
 const getInitials = (name = "") => {
   const parts = String(name).trim().split(/\s+/).filter(Boolean);
 
@@ -22,8 +22,6 @@ export default function Notes() {
   const [sort, setSort] = useState("updated_at");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-
-  // Logged-in user's profile name
   const [userName, setUserName] = useState("");
 
   const [showEditor, setShowEditor] = useState(false);
@@ -33,7 +31,80 @@ export default function Notes() {
   const [content, setContent] = useState("");
   const [saving, setSaving] = useState(false);
 
-  // Fetch logged-in user's profile
+  // Search dropdown
+  const [showSearchResults, setShowSearchResults] = useState(false);
+  const searchRef = useRef(null);
+
+  // Pinned notes
+  const [pinnedIds, setPinnedIds] = useState(() => {
+    try {
+      const saved = localStorage.getItem("vaultix-pinned-notes");
+      return saved ? JSON.parse(saved) : [];
+    } catch {
+      return [];
+    }
+  });
+
+  // Favourite notes
+  const [favoriteIds, setFavoriteIds] = useState(() => {
+    try {
+      const saved = localStorage.getItem("vaultix-favorite-notes");
+      return saved ? JSON.parse(saved) : [];
+    } catch {
+      return [];
+    }
+  });
+
+  // Save pinned notes
+  useEffect(() => {
+    localStorage.setItem("vaultix-pinned-notes", JSON.stringify(pinnedIds));
+  }, [pinnedIds]);
+
+  // Save favourite notes
+  useEffect(() => {
+    localStorage.setItem(
+      "vaultix-favorite-notes",
+      JSON.stringify(favoriteIds)
+    );
+  }, [favoriteIds]);
+
+  // Sort: Pinned first, then favourites, then normal notes
+  const sortedNotes = [...notes].sort((a, b) => {
+    const aPinned = pinnedIds.includes(String(a.id));
+    const bPinned = pinnedIds.includes(String(b.id));
+
+    if (aPinned !== bPinned) {
+      return Number(bPinned) - Number(aPinned);
+    }
+
+    const aFavorite = favoriteIds.includes(String(a.id));
+    const bFavorite = favoriteIds.includes(String(b.id));
+
+    return Number(bFavorite) - Number(aFavorite);
+  });
+
+  // Pin / Unpin
+  const togglePin = (noteId) => {
+    const id = String(noteId);
+
+    setPinnedIds((previous) =>
+      previous.includes(id)
+        ? previous.filter((item) => item !== id)
+        : [...previous, id]
+    );
+  };
+
+  // Favourite / Unfavourite
+  const toggleFavorite = (noteId) => {
+    const id = String(noteId);
+
+    setFavoriteIds((previous) =>
+      previous.includes(id)
+        ? previous.filter((item) => item !== id)
+        : [...previous, id]
+    );
+  };
+
   useEffect(() => {
     const fetchUserProfile = async () => {
       try {
@@ -51,8 +122,6 @@ export default function Notes() {
     fetchUserProfile();
   }, []);
 
-  // HttpOnly access cookie is automatically sent by Axios.
-  // No manual access-token handling is required.
   const requireCsrfToken = async () => {
     const token = await refreshCsrfToken();
 
@@ -63,7 +132,7 @@ export default function Notes() {
     return token;
   };
 
-  // Fetch notes
+  // Fetch Notes
   const fetchNotes = async () => {
     try {
       setLoading(true);
@@ -86,35 +155,67 @@ export default function Notes() {
       } else {
         setError(
           err.response?.data?.message ||
-            "Unable to load notes. Please try again.",
+            "Unable to load notes. Please try again."
         );
       }
+
+      setNotes([]);
     } finally {
       setLoading(false);
     }
   };
 
+  // Search delay
   useEffect(() => {
-    fetchNotes();
+    const timer = setTimeout(() => {
+      fetchNotes();
+    }, 300);
+
+    return () => clearTimeout(timer);
   }, [search, sort]);
 
-  // Create new note
+  // Close dropdown outside click
+  useEffect(() => {
+    const handleOutsideClick = (event) => {
+      if (searchRef.current && !searchRef.current.contains(event.target)) {
+        setShowSearchResults(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleOutsideClick);
+
+    return () => {
+      document.removeEventListener("mousedown", handleOutsideClick);
+    };
+  }, []);
+
+  const handleSearchKeyDown = (event) => {
+    if (event.key === "Escape") {
+      setShowSearchResults(false);
+    }
+
+    if (event.key === "Enter" && notes.length > 0) {
+      openEditNote(notes[0]);
+    }
+  };
+
   const openNewNote = () => {
     setEditingNote(null);
     setTitle("");
     setContent("");
     setShowEditor(true);
+    setShowSearchResults(false);
   };
 
-  // Edit existing note
   const openEditNote = (note) => {
     setEditingNote(note);
     setTitle(note.title);
     setContent(note.content || "");
     setShowEditor(true);
+    setShowSearchResults(false);
   };
 
-  // Save note
+  // Save Note
   const saveNote = async (e) => {
     e.preventDefault();
 
@@ -152,17 +253,17 @@ export default function Notes() {
       alert(
         err.response?.data?.message ||
           err.message ||
-          "Something went wrong while saving your note.",
+          "Something went wrong while saving your note."
       );
     } finally {
       setSaving(false);
     }
   };
 
-  // Delete note
+  // Delete Note
   const deleteNote = async (id) => {
     const confirmed = window.confirm(
-      "Are you sure you want to delete this note?",
+      "Are you sure you want to delete this note?"
     );
 
     if (!confirmed) return;
@@ -172,17 +273,26 @@ export default function Notes() {
 
       await api.delete(`/notes/${id}`);
 
+      const noteId = String(id);
+
+      setPinnedIds((previous) =>
+        previous.filter((item) => item !== noteId)
+      );
+
+      setFavoriteIds((previous) =>
+        previous.filter((item) => item !== noteId)
+      );
+
       await fetchNotes();
     } catch (err) {
       console.error("Delete note error:", err);
 
       alert(
-        err.response?.data?.message || err.message || "Unable to delete note.",
+        err.response?.data?.message || err.message || "Unable to delete note."
       );
     }
   };
 
-  // Format date
   const formatDate = (date) => {
     if (!date) return "";
 
@@ -195,23 +305,90 @@ export default function Notes() {
 
   return (
     <div className="notes-layout">
-
-      
-
-      {/* MAIN CONTENT */}
       <main className="notes-main">
+        {/* HEADER */}
         <header className="notes-header">
-          <div className="notes-search">
-            <span>⌕</span>
+          <div className="notes-search-wrapper" ref={searchRef}>
+            <div className="notes-search">
+              <span>⌕</span>
 
-            <input
-              id ="notes-search"
-              name="notesSearch"
-              type="text"
-              placeholder="Search your notes..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-            />
+              <input
+                id="notes-search"
+                name="notesSearch"
+                type="text"
+                placeholder="Search your notes..."
+                value={search}
+                autoComplete="off"
+                onChange={(e) => {
+                  setSearch(e.target.value);
+                  setShowSearchResults(true);
+                }}
+                onFocus={() => {
+                  if (search.trim()) {
+                    setShowSearchResults(true);
+                  }
+                }}
+                onKeyDown={handleSearchKeyDown}
+              />
+
+              {search && (
+                <button
+                  type="button"
+                  className="notes-search-clear"
+                  onClick={() => {
+                    setSearch("");
+                    setShowSearchResults(false);
+                    document.getElementById("notes-search")?.focus();
+                  }}
+                  aria-label="Clear search"
+                >
+                  ×
+                </button>
+              )}
+            </div>
+
+            {/* SEARCH RESULTS */}
+            {showSearchResults && search.trim() && (
+              <div className="notes-search-dropdown">
+                <div className="notes-search-dropdown-heading">
+                  <span>SEARCH RESULTS</span>
+                  <span>
+                    {loading ? "Searching..." : `${notes.length} found`}
+                  </span>
+                </div>
+
+                {loading ? (
+                  <div className="notes-search-message">
+                    Searching your notes...
+                  </div>
+                ) : notes.length > 0 ? (
+                  notes.slice(0, 10).map((note) => (
+                    <button
+                      type="button"
+                      className="notes-search-result"
+                      key={note.id}
+                      onClick={() => openEditNote(note)}
+                    >
+                      <span className="notes-result-icon">✎</span>
+
+                      <span className="notes-result-details">
+                        <strong>{note.title}</strong>
+                        <small>
+                          {note.content || "No content added yet."}
+                        </small>
+                      </span>
+
+                      <span className="notes-result-arrow">→</span>
+                    </button>
+                  ))
+                ) : (
+                  <div className="notes-search-message">
+                    <span>✎</span>
+                    <p>No matching notes found.</p>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
 
           <div className="notes-header-actions">
@@ -223,10 +400,7 @@ export default function Notes() {
               })}
             </span>
 
-            <div className="notes-avatar">
-              {getInitials(userName)}
-            </div>
-
+            <div className="notes-avatar">{getInitials(userName)}</div>
           </div>
         </header>
 
@@ -234,9 +408,7 @@ export default function Notes() {
         <section className="notes-heading">
           <div>
             <span className="notes-eyebrow">YOUR PERSONAL SPACE</span>
-
             <h1>My Notes</h1>
-
             <p>Save your thoughts, ideas and important points.</p>
           </div>
 
@@ -258,6 +430,18 @@ export default function Notes() {
             )}
 
             <span> Total Notes</span>
+
+            {pinnedIds.length > 0 && (
+              <span style={{ marginLeft: "14px", color: "#9a7133" }}>
+                📌 {pinnedIds.length} Pinned
+              </span>
+            )}
+
+            {favoriteIds.length > 0 && (
+              <span style={{ marginLeft: "14px", color: "#d94b68" }}>
+                ❤️ {favoriteIds.length} Favourite
+              </span>
+            )}
           </div>
 
           <div>
@@ -269,7 +453,6 @@ export default function Notes() {
               onChange={(e) => setSort(e.target.value)}
             >
               <option value="updated_at">Recently Updated</option>
-
               <option value="created_at">Recently Created</option>
             </select>
           </div>
@@ -281,61 +464,118 @@ export default function Notes() {
         ) : error ? (
           <div className="notes-message notes-error">
             {error}
-
             <button onClick={fetchNotes}>Try Again</button>
           </div>
         ) : notes.length === 0 ? (
           <div className="notes-empty">
             <div className="empty-icon">✎</div>
-
             <h2>No notes found</h2>
-
             <p>Your ideas deserve a safe place. Create your first note!</p>
-
             <button onClick={openNewNote}>+ Create Your First Note</button>
           </div>
         ) : (
           <section className="notes-grid">
-            {notes.map((note, index) => (
-              <article
-                className={`note-card ${colors[index % colors.length]}`}
-                key={note.id}
-              >
-                <div className="note-card-top">
-                  <span className="note-date">
-                    {formatDate(note.updated_at)}
-                  </span>
+            {sortedNotes.map((note, index) => {
+              const isPinned = pinnedIds.includes(String(note.id));
+              const isFavorite = favoriteIds.includes(String(note.id));
 
-                  <button
-                    className="note-menu-btn"
-                    onClick={() => openEditNote(note)}
-                    title="Edit note"
-                  >
-                    ✎
-                  </button>
-                </div>
+              return (
+                <article
+                  className={`note-card ${colors[index % colors.length]}`}
+                  key={note.id}
+                >
+                  <div className="note-card-top">
+                    <span className="note-date">
+                      {formatDate(note.updated_at)}
+                    </span>
 
-                <h3>{note.title}</h3>
+                    <div
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "8px",
+                      }}
+                    >
+                      {/* FAVOURITE BUTTON */}
+                      <button
+                        type="button"
+                        onClick={() => toggleFavorite(note.id)}
+                        title={
+                          isFavorite
+                            ? "Remove from favourites"
+                            : "Add to favourites"
+                        }
+                        aria-label={
+                          isFavorite
+                            ? "Remove from favourites"
+                            : "Add to favourites"
+                        }
+                        style={{
+                          border: "none",
+                          background: isFavorite ? "#ffe5eb" : "transparent",
+                          color: isFavorite ? "#e04465" : "#888",
+                          borderRadius: "8px",
+                          padding: "7px 9px",
+                          cursor: "pointer",
+                          fontSize: "19px",
+                          transition: "all 0.2s ease",
+                        }}
+                      >
+                        {isFavorite ? "❤️" : "♡"}
+                      </button>
 
-                <p className="note-preview">
-                  {note.content || "No content added yet."}
-                </p>
+                      {/* PIN BUTTON */}
+                      <button
+                        type="button"
+                        onClick={() => togglePin(note.id)}
+                        title={isPinned ? "Unpin note" : "Pin note"}
+                        aria-label={isPinned ? "Unpin note" : "Pin note"}
+                        style={{
+                          border: "none",
+                          background: isPinned ? "#f3e5c9" : "transparent",
+                          color: isPinned ? "#9a7133" : "#777",
+                          borderRadius: "8px",
+                          padding: "7px 9px",
+                          cursor: "pointer",
+                          fontSize: "17px",
+                        }}
+                      >
+                        {isPinned ? "📌" : "📍"}
+                      </button>
 
-                <div className="note-card-bottom">
-                  <span>Created {formatDate(note.created_at)}</span>
-
-                  <div>
-                    <button onClick={() => openEditNote(note)} title="Edit">
-                      Edit
-                    </button>
-
-                    <button onClick={() => deleteNote(note.id)} title="Delete">
-                      Delete
-                    </button>
+                      {/* EDIT BUTTON */}
+                      <button
+                        className="note-menu-btn"
+                        onClick={() => openEditNote(note)}
+                        title="Edit note"
+                      >
+                        ✎
+                      </button>
+                    </div>
                   </div>
-                </div>
-              </article>
-            ))}
+
+                  <h3>{note.title}</h3>
+
+                  <p className="note-preview">
+                    {note.content || "No content added yet."}
+                  </p>
+
+                  <div className="note-card-bottom">
+                    <span>Created {formatDate(note.created_at)}</span>
+
+                    <div>
+                      <button onClick={() => openEditNote(note)} title="Edit">
+                        Edit
+                      </button>
+
+                      <button onClick={() => deleteNote(note.id)} title="Delete">
+                        Delete
+                      </button>
+                    </div>
+                  </div>
+                </article>
+              );
+            })}
           </section>
         )}
       </main>
@@ -350,7 +590,6 @@ export default function Notes() {
             <div className="modal-heading">
               <div>
                 <span>YOUR PERSONAL SPACE</span>
-
                 <h2>{editingNote ? "Edit Note" : "Create New Note"}</h2>
               </div>
 

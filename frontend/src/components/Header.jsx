@@ -1,5 +1,4 @@
-
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import api from "../services/api";
 import "./Header.css";
@@ -13,6 +12,9 @@ export default function Header({
 }) {
   const navigate = useNavigate();
 
+  const searchInputRef = useRef(null);
+  const searchWrapperRef = useRef(null);
+
   const [accountName, setAccountName] = useState(userName);
   const [query, setQuery] = useState(searchValue);
   const [results, setResults] = useState([]);
@@ -20,14 +22,14 @@ export default function Header({
   const [searchError, setSearchError] = useState("");
   const [showResults, setShowResults] = useState(false);
 
-  // Keep avatar updated when parent receives user profile.
+  // Update account name
   useEffect(() => {
     if (userName) {
       setAccountName(userName);
     }
   }, [userName]);
 
-  // Fetch authenticated user's name when not provided.
+  // Fetch logged-in user's name
   useEffect(() => {
     if (userName) return;
 
@@ -53,12 +55,53 @@ export default function Header({
     };
   }, [userName]);
 
-  // Keep local search synchronized with parent value, if provided.
+  // Sync search value
   useEffect(() => {
     setQuery(searchValue);
   }, [searchValue]);
 
-  // Global search API with debounce.
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (
+        searchWrapperRef.current &&
+        !searchWrapperRef.current.contains(event.target)
+      ) {
+        setShowResults(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, []);
+
+  // Focus search using Ctrl + K or Cmd + K
+  useEffect(() => {
+    const handleKeyboardShortcut = (event) => {
+      if (
+        (event.ctrlKey || event.metaKey) &&
+        event.key.toLowerCase() === "k"
+      ) {
+        event.preventDefault();
+
+        if (showSearch) {
+          searchInputRef.current?.focus();
+          setShowResults(true);
+        }
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyboardShortcut);
+
+    return () => {
+      window.removeEventListener("keydown", handleKeyboardShortcut);
+    };
+  }, [showSearch]);
+
+  // Search notes and documents
   useEffect(() => {
     const keyword = query.trim();
 
@@ -70,11 +113,14 @@ export default function Header({
     }
 
     let isActive = true;
+    const controller = new AbortController();
+
+    setLoading(false);
+    setSearchError("");
 
     const timer = setTimeout(async () => {
       try {
         setLoading(true);
-        setSearchError("");
 
         const response = await api.get("/search", {
           params: {
@@ -83,20 +129,22 @@ export default function Header({
             page: 1,
             limit: 10,
           },
+          signal: controller.signal,
         });
 
         if (!isActive) return;
 
         setResults(response.data?.results || []);
       } catch (error) {
-        if (!isActive) return;
+        if (!isActive || controller.signal.aborted) return;
 
-        console.error("Global search failed:", error);
+        console.error("Search error:", error);
 
         setResults([]);
+
         setSearchError(
           error.response?.data?.message ||
-          "Unable to search right now. Please try again."
+            "Unable to search right now. Please try again."
         );
       } finally {
         if (isActive) {
@@ -108,9 +156,11 @@ export default function Header({
     return () => {
       isActive = false;
       clearTimeout(timer);
+      controller.abort();
     };
   }, [query, showSearch]);
 
+  // Handle search input
   const handleSearchChange = (event) => {
     const value = event.target.value;
 
@@ -120,7 +170,27 @@ export default function Header({
     onSearchChange?.(value);
   };
 
-  // Navigate to the relevant section.
+  // Clear search
+  const handleClearSearch = () => {
+    setQuery("");
+    setResults([]);
+    setSearchError("");
+    setLoading(false);
+    setShowResults(false);
+
+    onSearchChange?.("");
+
+    searchInputRef.current?.focus();
+  };
+
+  // Close dropdown using Escape key
+  const handleSearchKeyDown = (event) => {
+    if (event.key === "Escape") {
+      setShowResults(false);
+    }
+  };
+
+  // Navigate to selected result
   const handleResultClick = (result) => {
     setShowResults(false);
 
@@ -141,6 +211,7 @@ export default function Header({
     }
   };
 
+  // Generate avatar initials
   const initial =
     accountName
       ?.trim()
@@ -152,10 +223,11 @@ export default function Header({
 
   return (
     <header className="header">
-
       {showSearch && (
-        <div className="header-search-wrapper">
-
+        <div
+          className="header-search-wrapper"
+          ref={searchWrapperRef}
+        >
           <div className="header-search">
             <span
               className="header-search-icon"
@@ -165,26 +237,45 @@ export default function Header({
             </span>
 
             <input
-              id ="global-search"
+              ref={searchInputRef}
+              id="global-search"
               name="globalSearch"
               type="search"
               placeholder={searchPlaceholder}
               value={query}
               onChange={handleSearchChange}
               onFocus={() => setShowResults(true)}
+              onKeyDown={handleSearchKeyDown}
               aria-label={searchPlaceholder}
               aria-expanded={showResults}
             />
 
+            {query.length > 0 && (
+              <button
+                type="button"
+                className="header-search-clear"
+                onClick={handleClearSearch}
+                aria-label="Clear search"
+                title="Clear search"
+                style={{
+                  background: "none",
+                  border: "none",
+                  cursor: "pointer",
+                  fontSize: "20px",
+                  padding: "4px 8px",
+                }}
+              >
+                ×
+              </button>
+            )}
+
             {loading && (
               <span className="header-search-loader" />
             )}
-
           </div>
 
           {showResults && query.trim().length >= 2 && (
             <div className="global-search-dropdown">
-
               {loading && (
                 <div className="global-search-message">
                   Searching Notes and Documents...
@@ -235,24 +326,18 @@ export default function Header({
                       </span>
 
                       <span className="global-search-result-type">
-                        {result.type === "note"
-                          ? "Note"
-                          : "Document"}
+                        {result.type === "note" ? "Note" : "Document"}
                       </span>
                     </button>
                   ))}
                 </>
               )}
-
             </div>
           )}
-
         </div>
       )}
 
       <div className="header-actions">
-
-        {/* Notification Icon */}
         <span
           className="header-notification"
           role="img"
@@ -266,17 +351,15 @@ export default function Header({
             viewBox="0 0 24 24"
             fill="none"
             stroke="currentColor"
-            strokeWidth="1.8"
+            strokeWidth="2"
             strokeLinecap="round"
             strokeLinejoin="round"
-            aria-hidden="true"
           >
             <path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9" />
             <path d="M10 21h4" />
           </svg>
         </span>
 
-        {/* Profile Avatar */}
         <button
           type="button"
           className="header-avatar"
@@ -286,7 +369,6 @@ export default function Header({
         >
           {initial}
         </button>
-
       </div>
     </header>
   );
