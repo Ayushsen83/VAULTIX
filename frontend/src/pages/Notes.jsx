@@ -35,6 +35,39 @@ export default function Notes() {
   const [showSearchResults, setShowSearchResults] = useState(false);
   const searchRef = useRef(null);
 
+  // Pinned notes
+  const [pinnedIds, setPinnedIds] = useState(() => {
+    try {
+      const saved = localStorage.getItem("vaultix-pinned-notes");
+      return saved ? JSON.parse(saved) : [];
+    } catch {
+      return [];
+    }
+  });
+
+  // Save pinned notes in browser storage
+  useEffect(() => {
+    localStorage.setItem("vaultix-pinned-notes", JSON.stringify(pinnedIds));
+  }, [pinnedIds]);
+
+  // Keep pinned notes at the top
+  const sortedNotes = [...notes].sort((a, b) => {
+    const aPinned = pinnedIds.includes(String(a.id));
+    const bPinned = pinnedIds.includes(String(b.id));
+
+    return Number(bPinned) - Number(aPinned);
+  });
+
+  const togglePin = (noteId) => {
+    const id = String(noteId);
+
+    setPinnedIds((previous) =>
+      previous.includes(id)
+        ? previous.filter((pinnedId) => pinnedId !== id)
+        : [...previous, id]
+    );
+  };
+
   useEffect(() => {
     const fetchUserProfile = async () => {
       try {
@@ -203,6 +236,10 @@ export default function Notes() {
 
       await api.delete(`/notes/${id}`);
 
+      setPinnedIds((previous) =>
+        previous.filter((pinnedId) => pinnedId !== String(id))
+      );
+
       await fetchNotes();
     } catch (err) {
       console.error("Delete note error:", err);
@@ -272,7 +309,9 @@ export default function Notes() {
               <div className="notes-search-dropdown">
                 <div className="notes-search-dropdown-heading">
                   <span>SEARCH RESULTS</span>
-                  <span>{loading ? "Searching..." : `${notes.length} found`}</span>
+                  <span>
+                    {loading ? "Searching..." : `${notes.length} found`}
+                  </span>
                 </div>
 
                 {loading ? (
@@ -347,6 +386,11 @@ export default function Notes() {
               <strong>{notes.length}</strong>
             )}
             <span> Total Notes</span>
+            {pinnedIds.length > 0 && (
+              <span style={{ marginLeft: "14px", color: "#9a7133" }}>
+                📌 {pinnedIds.length} Pinned
+              </span>
+            )}
           </div>
 
           <div>
@@ -379,46 +423,76 @@ export default function Notes() {
           </div>
         ) : (
           <section className="notes-grid">
-            {notes.map((note, index) => (
-              <article
-                className={`note-card ${colors[index % colors.length]}`}
-                key={note.id}
-              >
-                <div className="note-card-top">
-                  <span className="note-date">
-                    {formatDate(note.updated_at)}
-                  </span>
+            {sortedNotes.map((note, index) => {
+              const isPinned = pinnedIds.includes(String(note.id));
 
-                  <button
-                    className="note-menu-btn"
-                    onClick={() => openEditNote(note)}
-                    title="Edit note"
-                  >
-                    ✎
-                  </button>
-                </div>
+              return (
+                <article
+                  className={`note-card ${colors[index % colors.length]}`}
+                  key={note.id}
+                >
+                  <div className="note-card-top">
+                    <span className="note-date">
+                      {formatDate(note.updated_at)}
+                    </span>
 
-                <h3>{note.title}</h3>
+                    <div
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "8px",
+                      }}
+                    >
+                      <button
+                        type="button"
+                        onClick={() => togglePin(note.id)}
+                        title={isPinned ? "Unpin note" : "Pin note"}
+                        aria-label={isPinned ? "Unpin note" : "Pin note"}
+                        style={{
+                          border: "none",
+                          background: isPinned ? "#f3e5c9" : "transparent",
+                          color: isPinned ? "#9a7133" : "#777",
+                          borderRadius: "8px",
+                          padding: "7px 9px",
+                          cursor: "pointer",
+                          fontSize: "17px",
+                        }}
+                      >
+                        {isPinned ? "📌" : "📍"}
+                      </button>
 
-                <p className="note-preview">
-                  {note.content || "No content added yet."}
-                </p>
-
-                <div className="note-card-bottom">
-                  <span>Created {formatDate(note.created_at)}</span>
-
-                  <div>
-                    <button onClick={() => openEditNote(note)} title="Edit">
-                      Edit
-                    </button>
-
-                    <button onClick={() => deleteNote(note.id)} title="Delete">
-                      Delete
-                    </button>
+                      <button
+                        className="note-menu-btn"
+                        onClick={() => openEditNote(note)}
+                        title="Edit note"
+                      >
+                        ✎
+                      </button>
+                    </div>
                   </div>
-                </div>
-              </article>
-            ))}
+
+                  <h3>{note.title}</h3>
+
+                  <p className="note-preview">
+                    {note.content || "No content added yet."}
+                  </p>
+
+                  <div className="note-card-bottom">
+                    <span>Created {formatDate(note.created_at)}</span>
+
+                    <div>
+                      <button onClick={() => openEditNote(note)} title="Edit">
+                        Edit
+                      </button>
+
+                      <button onClick={() => deleteNote(note.id)} title="Delete">
+                        Delete
+                      </button>
+                    </div>
+                  </div>
+                </article>
+              );
+            })}
           </section>
         )}
       </main>
