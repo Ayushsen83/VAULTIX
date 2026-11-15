@@ -57,7 +57,7 @@ export default function Header({
     setQuery(searchValue);
   }, [searchValue]);
 
-  // Global search API with debounce and request cancellation.
+  // Global search with debounce and request cancellation.
   useEffect(() => {
     const keyword = query.trim();
 
@@ -69,7 +69,6 @@ export default function Header({
     }
 
     let isActive = true;
-
     const controller = new AbortController();
 
     setLoading(false);
@@ -98,7 +97,6 @@ export default function Header({
         console.error("Global search failed:", error);
 
         setResults([]);
-
         setSearchError(
           error.response?.data?.message ||
             "Unable to search right now. Please try again."
@@ -125,6 +123,13 @@ export default function Header({
     setShowResults(true);
 
     onSearchChange?.(value);
+  };
+
+  // Handle keyboard actions in search.
+  const handleSearchKeyDown = (event) => {
+    if (event.key === "Escape") {
+      setShowResults(false);
+    }
   };
 
   // Navigate to the relevant section.
@@ -177,6 +182,7 @@ export default function Header({
               value={query}
               onChange={handleSearchChange}
               onFocus={() => setShowResults(true)}
+              onKeyDown={handleSearchKeyDown}
               aria-label={searchPlaceholder}
               aria-expanded={showResults}
             />
