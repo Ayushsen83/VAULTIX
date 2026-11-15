@@ -42,6 +42,40 @@ const allowedOrigins = [
   process.env.FRONTEND_URL,
 ].filter(Boolean);
 app.set("trust proxy", 1);
+const crypto = require("crypto");
+
+app.use((req, res, next) => {
+  const requestId = crypto.randomUUID();
+  const start = process.hrtime.bigint();
+
+  req.requestId = requestId;
+
+  res.setHeader("X-Request-ID", requestId);
+
+  console.log("[REQUEST IN]", JSON.stringify({
+    requestId,
+    method: req.method,
+    path: req.originalUrl,
+    ip: req.ip,
+    socketIP: req.socket.remoteAddress,
+    forwardedFor: req.headers["x-forwarded-for"],
+    time: new Date().toISOString()
+  }));
+
+  res.on("finish", () => {
+    const duration = Number(
+      process.hrtime.bigint() - start
+    ) / 1e6;
+
+    console.log("[REQUEST OUT]", JSON.stringify({
+      requestId,
+      status: res.statusCode,
+      durationMs: Math.round(duration)
+    }));
+  });
+
+  next();
+});
 app.use(
   cors({
     origin: (origin, callback) => {
