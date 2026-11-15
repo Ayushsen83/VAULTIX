@@ -27,7 +27,7 @@ const loginLimiter = rateLimit({
 
 // Registration protection
 const registerLimiter = rateLimit({
-  windowMs: 60 * 60 * 1000, // 1 hour
+  windowMs: 5 * 60 * 1000, // 5 minutes
   limit: 5,
   standardHeaders: "draft-8",
   legacyHeaders: false,
