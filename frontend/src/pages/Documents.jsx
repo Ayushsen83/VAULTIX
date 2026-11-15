@@ -18,21 +18,25 @@ const getInitials = (name = "") => {
 export default function Documents() {
   const [files, setFiles] = useState([]);
   const [search, setSearch] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+  const [showSearchResults, setShowSearchResults] = useState(false);
+
   const [type, setType] = useState("");
   const [sort, setSort] = useState("created_at");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState("");
   const [uploadProgress, setUploadProgress] = useState(0);
   const [uploadFileName, setUploadFileName] = useState("");
   const [uploadStatus, setUploadStatus] = useState("");
-  const [pagination, setPagination] = useState({});
 
-  // Logged-in user's profile name
+  const [pagination, setPagination] = useState({});
   const [userName, setUserName] = useState("");
 
   const inputRef = useRef(null);
+  const searchRef = useRef(null);
 
   // Fetch logged-in user's profile
   useEffect(() => {
@@ -52,12 +56,41 @@ export default function Documents() {
     fetchUserProfile();
   }, []);
 
-  // Get a fresh CSRF token before every mutation.
+  // Debounce search input
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(search.trim());
+    }, 300);
+
+    return () => clearTimeout(timer);
+  }, [search]);
+
+  // Close search dropdown when clicking outside
+  useEffect(() => {
+    const handleOutsideClick = (event) => {
+      if (
+        searchRef.current &&
+        !searchRef.current.contains(event.target)
+      ) {
+        setShowSearchResults(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleOutsideClick);
+
+    return () => {
+      document.removeEventListener("mousedown", handleOutsideClick);
+    };
+  }, []);
+
+  // Get a fresh CSRF token before every mutation
   const requireCsrfToken = async () => {
     const token = await refreshCsrfToken();
 
     if (!token) {
-      throw new Error("Could not obtain a security token. Please try again.");
+      throw new Error(
+        "Could not obtain a security token. Please try again."
+      );
     }
 
     return token;
@@ -71,7 +104,7 @@ export default function Documents() {
 
       const response = await api.get("/files", {
         params: {
-          q: search,
+          q: debouncedSearch,
           type: type || undefined,
           sort,
           order: "desc",
@@ -87,17 +120,17 @@ export default function Documents() {
 
       setError(
         err.response?.data?.message ||
-          "Unable to load documents. Please try again.",
+          "Unable to load documents. Please try again."
       );
     } finally {
       setLoading(false);
     }
   };
 
-  // Reload documents when filters change
+  // Reload documents when filters or search change
   useEffect(() => {
     fetchFiles();
-  }, [search, type, sort]);
+  }, [debouncedSearch, type, sort]);
 
   // Format file size
   const formatSize = (bytes) => {
@@ -124,6 +157,34 @@ export default function Documents() {
     return file.mime_type === "application/pdf" ? "PDF" : "AUDIO";
   };
 
+  // Handle search result click
+  const handleSearchResultClick = (file) => {
+    setShowSearchResults(false);
+    handlePreview(file);
+  };
+
+  // Handle search keyboard actions
+  const handleSearchKeyDown = (event) => {
+    if (event.key === "Escape") {
+      setShowSearchResults(false);
+    }
+
+    if (event.key === "Enter") {
+      const firstResult = files[0];
+
+      if (firstResult && search.trim()) {
+        handleSearchResultClick(firstResult);
+      }
+    }
+  };
+
+  // Clear search
+  const clearSearch = () => {
+    setSearch("");
+    setDebouncedSearch("");
+    setShowSearchResults(false);
+  };
+
   // Upload document with progress
   const handleUpload = async (event) => {
     const file = event.target.files?.[0];
@@ -135,22 +196,25 @@ export default function Documents() {
     const extension = file.name.split(".").pop().toLowerCase();
     const allowed = ["pdf", "mp3", "wav", "m4a"];
 
-    // Validate file extension
     if (!allowed.includes(extension)) {
-      setUploadError("Only PDF, MP3, WAV and M4A files are allowed.");
+      setUploadError(
+        "Only PDF, MP3, WAV and M4A files are allowed."
+      );
 
       event.target.value = "";
       return;
     }
 
-    // Validate file size
-    const maxSize = extension === "pdf" ? 50 * 1024 * 1024 : 10 * 1024 * 1024;
+    const maxSize =
+      extension === "pdf"
+        ? 50 * 1024 * 1024
+        : 10 * 1024 * 1024;
 
     if (file.size > maxSize) {
       setUploadError(
         extension === "pdf"
           ? "PDF file must be smaller than 50 MB."
-          : "Audio file must be smaller than 10 MB.",
+          : "Audio file must be smaller than 10 MB."
       );
 
       event.target.value = "";
@@ -163,26 +227,27 @@ export default function Documents() {
       setUploadFileName(file.name);
       setUploadStatus("Preparing upload...");
 
-      // Prepare multipart form data
       const formData = new FormData();
       formData.append("file", file);
 
-      // Get fresh CSRF token
       await requireCsrfToken();
 
       setUploadStatus("Uploading...");
 
-      // Upload document and track actual progress
       await api.post("/files", formData, {
         onUploadProgress: (progressEvent) => {
           if (progressEvent.total) {
             const percent = Math.round(
-              (progressEvent.loaded * 100) / progressEvent.total
+              (progressEvent.loaded * 100) /
+                progressEvent.total
             );
 
             setUploadProgress(percent);
+
             setUploadStatus(
-              percent >= 100 ? "Finishing upload..." : "Uploading..."
+              percent >= 100
+                ? "Finishing upload..."
+                : "Uploading..."
             );
           }
         },
@@ -191,9 +256,8 @@ export default function Documents() {
       setUploadProgress(100);
       setUploadStatus("Upload completed");
 
-      // Refresh document list
       await fetchFiles();
-      // Keep success popup visible briefly
+
       setTimeout(() => {
         setUploadStatus("");
         setUploadProgress(0);
@@ -207,16 +271,14 @@ export default function Documents() {
       setUploadError(
         err.response?.data?.message ||
           err.message ||
-          "Unable to upload document. Please try again.",
+          "Unable to upload document. Please try again."
       );
 
-      // Keep failed popup visible briefly
       setTimeout(() => {
         setUploadStatus("");
         setUploadProgress(0);
         setUploadFileName("");
       }, 3000);
-
     } finally {
       setUploading(false);
       event.target.value = "";
@@ -226,7 +288,7 @@ export default function Documents() {
   // Delete document
   const handleDelete = async (file) => {
     const confirmed = window.confirm(
-      `Are you sure you want to delete "${file.file_name}"?`,
+      `Are you sure you want to delete "${file.file_name}"?`
     );
 
     if (!confirmed) return;
@@ -243,7 +305,7 @@ export default function Documents() {
       alert(
         err.response?.data?.message ||
           err.message ||
-          "Unable to delete document.",
+          "Unable to delete document."
       );
     }
   };
@@ -251,9 +313,12 @@ export default function Documents() {
   // Preview document
   const handlePreview = async (file) => {
     try {
-      const response = await api.get(`/files/${file.id}/preview`, {
-        responseType: "blob",
-      });
+      const response = await api.get(
+        `/files/${file.id}/preview`,
+        {
+          responseType: "blob",
+        }
+      );
 
       const blobUrl = URL.createObjectURL(response.data);
       const newWindow = window.open(blobUrl, "_blank");
@@ -261,7 +326,9 @@ export default function Documents() {
       if (!newWindow) {
         URL.revokeObjectURL(blobUrl);
 
-        alert("Please allow pop-ups to preview this document.");
+        alert(
+          "Please allow pop-ups to preview this document."
+        );
       } else {
         setTimeout(() => {
           URL.revokeObjectURL(blobUrl);
@@ -270,16 +337,22 @@ export default function Documents() {
     } catch (err) {
       console.error("Preview document error:", err);
 
-      alert(err.response?.data?.message || "Unable to preview this document.");
+      alert(
+        err.response?.data?.message ||
+          "Unable to preview this document."
+      );
     }
   };
 
   // Download document
   const handleDownload = async (file) => {
     try {
-      const response = await api.get(`/files/${file.id}/download`, {
-        responseType: "blob",
-      });
+      const response = await api.get(
+        `/files/${file.id}/download`,
+        {
+          responseType: "blob",
+        }
+      );
 
       const url = URL.createObjectURL(response.data);
       const link = document.createElement("a");
@@ -297,39 +370,141 @@ export default function Documents() {
     } catch (err) {
       console.error("Download document error:", err);
 
-      alert(err.response?.data?.message || "Unable to download document.");
+      alert(
+        err.response?.data?.message ||
+          "Unable to download document."
+      );
     }
   };
 
   // Calculate total storage usage
   const totalUsed = files.reduce(
-    (total, file) => total + Number(file.size_bytes || 0),
-    0,
+    (total, file) =>
+      total + Number(file.size_bytes || 0),
+    0
   );
 
   // Calculate storage percentage
   const usagePercentage = Math.min(
     (totalUsed / (100 * 1024 * 1024)) * 100,
-    100,
+    100
   );
 
   return (
     <div className="documents-layout">
-
-      {/* MAIN CONTENT */}
       <main className="documents-main">
+
         {/* HEADER */}
         <header className="documents-header">
-          <div className="documents-search">
-            <span>⌕</span>
 
-            <input
-              id="document-search"
-              type="text"
-              placeholder="Search your documents..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-            />
+          {/* SEARCH */}
+          <div
+            className="documents-search-wrapper"
+            ref={searchRef}
+          >
+            <div className="documents-search">
+              <span>⌕</span>
+
+              <input
+                id="document-search"
+                type="text"
+                placeholder="Search your documents..."
+                value={search}
+                onChange={(e) => {
+                  setSearch(e.target.value);
+                  setShowSearchResults(true);
+                }}
+                onFocus={() => {
+                  if (search.trim()) {
+                    setShowSearchResults(true);
+                  }
+                }}
+                onKeyDown={handleSearchKeyDown}
+                autoComplete="off"
+              />
+
+              {search && (
+                <button
+                  type="button"
+                  className="documents-search-clear"
+                  onClick={clearSearch}
+                  aria-label="Clear search"
+                >
+                  ×
+                </button>
+              )}
+            </div>
+
+            {/* SEARCH RESULTS DROPDOWN */}
+            {showSearchResults && search.trim() && (
+              <div className="documents-search-dropdown">
+
+                <div className="documents-search-dropdown-heading">
+                  <span>SEARCH RESULTS</span>
+                  {!loading && (
+                    <span>
+                      {files.length} found
+                    </span>
+                  )}
+                </div>
+
+                {loading ? (
+                  <div className="documents-search-message">
+                    Searching documents...
+                  </div>
+                ) : files.length > 0 ? (
+                  <div className="documents-search-results">
+                    {files.slice(0, 10).map((file) => (
+                      <button
+                        type="button"
+                        className="documents-search-result"
+                        key={file.id}
+                        onClick={() =>
+                          handleSearchResultClick(file)
+                        }
+                      >
+                        <div
+                          className={`documents-search-result-icon ${
+                            getFileType(file).toLowerCase()
+                          }`}
+                        >
+                          {getFileType(file) === "PDF"
+                            ? "PDF"
+                            : "♫"}
+                        </div>
+
+                        <div className="documents-search-result-info">
+                          <strong>{file.file_name}</strong>
+
+                          <span>
+                            {getFileType(file)} ·{" "}
+                            {formatSize(file.size_bytes)}
+                          </span>
+                        </div>
+
+                        <span className="documents-search-result-arrow">
+                          ↗
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="documents-search-message">
+                    <span>⌕</span>
+                    <strong>No documents found</strong>
+                    <small>
+                      Try searching with another file name.
+                    </small>
+                  </div>
+                )}
+
+                {!loading && files.length > 10 && (
+                  <div className="documents-search-footer">
+                    Showing first 10 results
+                  </div>
+                )}
+              </div>
+            )}
           </div>
 
           <div className="documents-header-actions">
@@ -344,18 +519,21 @@ export default function Documents() {
             <div className="documents-avatar">
               {getInitials(userName)}
             </div>
-
           </div>
         </header>
 
         {/* PAGE HEADING */}
         <section className="documents-heading">
           <div>
-            <span className="documents-eyebrow">YOUR SECURE STORAGE</span>
+            <span className="documents-eyebrow">
+              YOUR SECURE STORAGE
+            </span>
 
             <h1>My Documents</h1>
 
-            <p>All your important files, safely stored in one place.</p>
+            <p>
+              All your important files, safely stored in one place.
+            </p>
           </div>
 
           <button
@@ -377,66 +555,23 @@ export default function Documents() {
 
         {/* UPLOAD PROGRESS POPUP */}
         {uploadStatus && (
-          <div
-            style={{
-              position: "fixed",
-              right: "25px",
-              bottom: "25px",
-              width: "320px",
-              maxWidth: "calc(100vw - 40px)",
-              padding: "18px",
-              backgroundColor: "#ffffff",
-              borderRadius: "14px",
-              boxShadow: "0 8px 30px rgba(0,0,0,0.16)",
-              border: "1px solid #e8e1d7",
-              zIndex: 9999,
-            }}
-          >
-            <div
-              style={{
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
-                gap: "10px",
-                marginBottom: "10px",
-                color: "#202c26",
-              }}
-            >
+          <div className="documents-upload-popup">
+            <div className="documents-upload-popup-header">
               <strong>{uploadStatus}</strong>
-
               <strong>{uploadProgress}%</strong>
             </div>
 
-            <p
-              style={{
-                margin: "0 0 12px",
-                fontSize: "13px",
-                color: "#777",
-                overflowWrap: "anywhere",
-              }}
-            >
-              {uploadFileName}
-            </p>
+            <p>{uploadFileName}</p>
 
-            <div
-              style={{
-                width: "100%",
-                height: "7px",
-                backgroundColor: "#eee9e1",
-                borderRadius: "10px",
-                overflow: "hidden",
-              }}
-            >
+            <div className="documents-upload-popup-track">
               <div
+                className={
+                  uploadStatus === "Upload failed"
+                    ? "documents-upload-popup-bar failed"
+                    : "documents-upload-popup-bar"
+                }
                 style={{
                   width: `${uploadProgress}%`,
-                  height: "100%",
-                  backgroundColor:
-                    uploadStatus === "Upload failed"
-                      ? "#c0392b"
-                      : "#c98262",
-                  borderRadius: "10px",
-                  transition: "width 0.2s ease",
                 }}
               />
             </div>
@@ -448,9 +583,7 @@ export default function Documents() {
           <div className="documents-upload-error">
             {uploadError}
 
-            <button
-              onClick={() => setUploadError("")}
-            >
+            <button onClick={() => setUploadError("")}>
               ×
             </button>
           </div>
@@ -467,6 +600,7 @@ export default function Documents() {
               ) : (
                 formatSize(totalUsed)
               )}
+
               <small> of 100 MB used</small>
             </h3>
           </div>
@@ -538,7 +672,9 @@ export default function Documents() {
           <div className="documents-message documents-error">
             {error}
 
-            <button onClick={fetchFiles}>Try Again</button>
+            <button onClick={fetchFiles}>
+              Try Again
+            </button>
           </div>
         ) : files.length === 0 ? (
           <div className="documents-empty">
@@ -547,8 +683,8 @@ export default function Documents() {
             <h2>No documents found</h2>
 
             <p>
-              Your important files deserve a secure home. Upload your first
-              document!
+              Your important files deserve a secure home.
+              Upload your first document!
             </p>
 
             <button onClick={() => inputRef.current?.click()}>
@@ -558,7 +694,10 @@ export default function Documents() {
         ) : (
           <section className="documents-grid">
             {files.map((file) => (
-              <article className="document-card" key={file.id}>
+              <article
+                className="document-card"
+                key={file.id}
+              >
                 <div className="document-card-top">
                   <div
                     className={`document-file-icon ${getFileType(file).toLowerCase()}`}
@@ -566,23 +705,27 @@ export default function Documents() {
                     {getFileType(file) === "PDF" ? "PDF" : "♫"}
                   </div>
 
-                  <span className="document-file-type">
+                  <span className="document-type-badge">
                     {getFileType(file)}
                   </span>
                 </div>
 
-                <h3 className="document-file-name">{file.file_name}</h3>
+                <h3>{file.file_name}</h3>
 
-                <div className="document-file-details">
+                <div className="document-meta">
                   <span>{formatSize(file.size_bytes)}</span>
 
                   <span>{formatDate(file.created_at)}</span>
                 </div>
 
                 <div className="document-card-actions">
-                  <button onClick={() => handlePreview(file)}>Preview</button>
+                  <button onClick={() => handlePreview(file)}>
+                    Preview
+                  </button>
 
-                  <button onClick={() => handleDownload(file)}>Download</button>
+                  <button onClick={() => handleDownload(file)}>
+                    Download
+                  </button>
 
                   <button
                     className="document-delete-btn"
