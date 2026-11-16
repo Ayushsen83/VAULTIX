@@ -2,7 +2,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
-import Sidebar from "../components/sidebar";
+
 import api, { fetchFreshCsrfToken } from "../services/api";
 
 import "./profile.css";
@@ -669,8 +669,7 @@ export default function Profile() {
   // PAGE UI
   return (
     <div className="profile-layout">
-      <Sidebar />
-
+      
       <div className="profile-main">
         <main className="profile-content">
           {/* PAGE HEADING */}
