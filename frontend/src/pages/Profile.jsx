@@ -1,7 +1,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-
+import ProfileSkeleton from "../components/skeletons/ProfileSkeleton";
 
 import api, { fetchFreshCsrfToken } from "../services/api";
 
@@ -671,7 +671,10 @@ export default function Profile() {
     <div className="profile-layout">
       
       <div className="profile-main">
-        <main className="profile-content">
+  {loading ? (
+    <ProfileSkeleton />
+  ) : (
+    <main className="profile-content">
           {/* PAGE HEADING */}
           <div className="profile-page-heading">
             <div>
@@ -1274,9 +1277,10 @@ export default function Profile() {
                 )}
               </div>
             </>
-          )}
+                  )}
         </main>
-      </div>
+      )}
+    </div>
     </div>
   );
 }
