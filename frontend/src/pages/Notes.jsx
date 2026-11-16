@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import api, { refreshCsrfToken } from "../services/api";
 import "./Notes.css";
 import NotesSkeleton from "../components/skeletons/NotesSkeleton";
@@ -17,6 +18,7 @@ const getInitials = (name = "") => {
 };
 
 export default function Notes() {
+  const navigate = useNavigate();
   const [notes, setNotes] = useState([]);
   const [search, setSearch] = useState("");
   const [sort, setSort] = useState("updated_at");
@@ -62,10 +64,7 @@ export default function Notes() {
 
   // Save favourite notes
   useEffect(() => {
-    localStorage.setItem(
-      "vaultix-favorite-notes",
-      JSON.stringify(favoriteIds)
-    );
+    localStorage.setItem("vaultix-favorite-notes", JSON.stringify(favoriteIds));
   }, [favoriteIds]);
 
   // Sort: Pinned first, then favourites, then normal notes
@@ -90,7 +89,7 @@ export default function Notes() {
     setPinnedIds((previous) =>
       previous.includes(id)
         ? previous.filter((item) => item !== id)
-        : [...previous, id]
+        : [...previous, id],
     );
   };
 
@@ -101,7 +100,7 @@ export default function Notes() {
     setFavoriteIds((previous) =>
       previous.includes(id)
         ? previous.filter((item) => item !== id)
-        : [...previous, id]
+        : [...previous, id],
     );
   };
 
@@ -155,7 +154,7 @@ export default function Notes() {
       } else {
         setError(
           err.response?.data?.message ||
-            "Unable to load notes. Please try again."
+            "Unable to load notes. Please try again.",
         );
       }
 
@@ -253,7 +252,7 @@ export default function Notes() {
       alert(
         err.response?.data?.message ||
           err.message ||
-          "Something went wrong while saving your note."
+          "Something went wrong while saving your note.",
       );
     } finally {
       setSaving(false);
@@ -263,7 +262,7 @@ export default function Notes() {
   // Delete Note
   const deleteNote = async (id) => {
     const confirmed = window.confirm(
-      "Are you sure you want to delete this note?"
+      "Are you sure you want to delete this note?",
     );
 
     if (!confirmed) return;
@@ -275,20 +274,16 @@ export default function Notes() {
 
       const noteId = String(id);
 
-      setPinnedIds((previous) =>
-        previous.filter((item) => item !== noteId)
-      );
+      setPinnedIds((previous) => previous.filter((item) => item !== noteId));
 
-      setFavoriteIds((previous) =>
-        previous.filter((item) => item !== noteId)
-      );
+      setFavoriteIds((previous) => previous.filter((item) => item !== noteId));
 
       await fetchNotes();
     } catch (err) {
       console.error("Delete note error:", err);
 
       alert(
-        err.response?.data?.message || err.message || "Unable to delete note."
+        err.response?.data?.message || err.message || "Unable to delete note.",
       );
     }
   };
@@ -373,9 +368,7 @@ export default function Notes() {
 
                       <span className="notes-result-details">
                         <strong>{note.title}</strong>
-                        <small>
-                          {note.content || "No content added yet."}
-                        </small>
+                        <small>{note.content || "No content added yet."}</small>
                       </span>
 
                       <span className="notes-result-arrow">→</span>
@@ -400,7 +393,15 @@ export default function Notes() {
               })}
             </span>
 
-            <div className="notes-avatar">{getInitials(userName)}</div>
+            <button
+              type="button"
+              className="notes-avatar"
+              onClick={() => navigate("/profile")}
+              aria-label="Open profile"
+              title="View profile"
+            >
+              {getInitials(userName)}
+            </button>
           </div>
         </header>
 
@@ -568,7 +569,10 @@ export default function Notes() {
                         Edit
                       </button>
 
-                      <button onClick={() => deleteNote(note.id)} title="Delete">
+                      <button
+                        onClick={() => deleteNote(note.id)}
+                        title="Delete"
+                      >
                         Delete
                       </button>
                     </div>
