@@ -1,5 +1,3 @@
-
-
 /* =========================================
    VAULTIX SIDEBAR - BASE
 ========================================= */
@@ -366,9 +364,7 @@
 ========================================= */
 
 @media (max-width: 1024px) {
-
   /* Sidebar becomes a hidden drawer */
-
   .app-sidebar,
   .app-sidebar.is-collapsed {
     width: min(280px, 86vw);
@@ -386,7 +382,6 @@
   }
 
   /* Open drawer */
-
   .app-sidebar.is-mobile-open {
     transform: translateX(0);
     visibility: visible;
@@ -395,7 +390,6 @@
   }
 
   /* Restore full brand */
-
   .app-sidebar.is-collapsed .sidebar-brand {
     flex-direction: row;
     justify-content: space-between;
@@ -409,14 +403,12 @@
   }
 
   /* Restore navigation text */
-
   .app-sidebar.is-collapsed .sidebar-brand-text,
   .app-sidebar.is-collapsed .sidebar-link-text {
     display: block;
   }
 
   /* Restore normal navigation alignment */
-
   .app-sidebar.is-collapsed .sidebar-link,
   .app-sidebar.is-collapsed .sidebar-logout {
     justify-content: flex-start;
@@ -426,57 +418,57 @@
   }
 
   /* Hide desktop toggle */
-
   .desktop-toggle {
     display: none;
   }
 
   /* Show mobile close button */
-
   .mobile-toggle {
     display: grid;
   }
 
-  /* Standalone mobile hamburger */
+  /* Top-left mobile hamburger (scrolls with page header instead of sticking over cards) */
+  .mobile-menu-trigger {
+    position: absolute;
+    top: max(18px, env(safe-area-inset-top));
+    left: max(16px, env(safe-area-inset-left));
+    z-index: 1050;
 
-/* Standalone mobile hamburger */
+    display: grid;
+    place-items: center;
 
-.mobile-menu-trigger {
-  position: fixed;
-  top: max(18px, env(safe-area-inset-top));
-  left: max(16px, env(safe-area-inset-left));
-  z-index: 1301;
+    width: 44px;
+    height: 44px;
 
-  display: grid;
-  place-items: center;
+    padding: 0;
 
-  width: 44px;
-  height: 44px;
+    color: #ffffff;
+    background: #202020;
 
-  padding: 0;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 10px;
+    appearance: none;
+    -webkit-appearance: none;
 
-  color: #ffffff;
-  background: #202020;
+    box-shadow: 0 3px 12px rgba(0, 0, 0, 0.18);
 
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  border-radius: 10px;
-  appearance: none;
-  -webkit-appearance: none;
-
-  box-shadow: 0 3px 12px rgba(0, 0, 0, 0.18);
-
-  cursor: pointer;
-  pointer-events: auto;
-  touch-action: manipulation;
-  -webkit-tap-highlight-color: transparent;
-}
+    cursor: pointer;
+    pointer-events: auto;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+  }
 
   .mobile-menu-trigger:hover {
     background: #303030;
   }
 
-  /* Drawer backdrop */
+  .app-sidebar.is-mobile-open ~ .mobile-menu-trigger,
+  .mobile-menu-trigger[aria-expanded="true"] {
+    opacity: 0;
+    pointer-events: none;
+  }
 
+  /* Drawer backdrop */
   .sidebar-backdrop {
     position: fixed;
     inset: 0;
@@ -502,7 +494,6 @@
 ========================================= */
 
 @media (max-width: 480px) {
-
   .app-sidebar,
   .app-sidebar.is-collapsed {
     width: min(280px, 88vw);
@@ -511,7 +502,7 @@
   }
 
   .mobile-menu-trigger {
-    top: max(12px, env(safe-area-inset-top));
+    top: max(14px, env(safe-area-inset-top));
     left: max(12px, env(safe-area-inset-left));
 
     width: 42px;
