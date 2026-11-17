@@ -26,6 +26,7 @@
   --profile-danger: #a43d32;
   --profile-shadow: 0 4px 16px rgb(49 35 24 / 5%);
 
+  position: relative;
   display: flex;
   align-items: stretch;
   width: 100%;
@@ -33,7 +34,6 @@
   min-width: 0;
   min-height: 100vh;
   min-height: 100dvh;
-  overflow-x: clip;
 
   background: var(--profile-background);
   color: var(--profile-text);
@@ -63,7 +63,6 @@
 /* =====================================================
    MAIN LAYOUT
 ===================================================== */
-
 .profile-main {
   display: flex;
   flex: 1 1 0%;
@@ -73,7 +72,9 @@
   min-width: 0;
   min-height: 100vh;
   min-height: 100dvh;
-  overflow-x: clip;
+}
+.app-sidebar.is-collapsed ~ .profile-main {
+  margin-left: 78px;
 }
 
 .profile-content {
@@ -1322,7 +1323,7 @@
 }
 
 /* =====================================================
-   LAPTOPS
+   LAPTOPS & MOBILE DRAWER OFFSET
 ===================================================== */
 
 @media (max-width: 1100px) {
@@ -1332,6 +1333,19 @@
 
   .personal-information-grid {
     column-gap: 20px;
+  }
+}
+
+@media (max-width: 1024px) {
+  .profile-main,
+  .app-sidebar.is-collapsed ~ .profile-main {
+    margin-left: 0;
+  }
+
+  .profile-page-heading {
+    margin-left: 52px;
+    padding-left: 0;
+    min-height: 44px;
   }
 }
 
@@ -1353,7 +1367,6 @@
     padding: 20px;
   }
 
-  /* Hide the thin circular pseudo-element line on tablet/mobile */
   .profile-hero-banner::before {
     display: none;
   }
@@ -1655,6 +1668,11 @@
 @media (max-width: 380px) {
   .profile-content {
     padding: 16px 10px 24px;
+  }
+
+  .profile-page-heading {
+    margin-left: 48px;
+    padding-left: 0;
   }
 
   .profile-page-heading h1 {
