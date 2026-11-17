@@ -422,19 +422,7 @@ export default function Home() {
     }
   };
 
-  // Initial loading screen.
-  // if (isLoading && !user) {
-  //   return (
-  //     <main className="home-loading">
-  //       <div
-  //         className="home-spinner"
-  //         role="status"
-  //         aria-label="Loading dashboard"
-  //       />
-  //       <p>Securing your digital locker...</p>
-  //     </main>
-  //   );
-  // }
+
 
   // Initial dashboard skeleton.
   if (isLoading && !user) {
