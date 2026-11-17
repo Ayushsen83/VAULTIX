@@ -1,8 +1,8 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import ProfileSkeleton from "../components/skeletons/ProfileSkeleton";
 
+import Sidebar from "../components/sidebar";
 import api, { fetchFreshCsrfToken } from "../services/api";
 
 import "./profile.css";
@@ -669,12 +669,10 @@ export default function Profile() {
   // PAGE UI
   return (
     <div className="profile-layout">
-      
+      <Sidebar />
+
       <div className="profile-main">
-  {loading ? (
-    <ProfileSkeleton />
-  ) : (
-    <main className="profile-content">
+        <main className="profile-content">
           {/* PAGE HEADING */}
           <div className="profile-page-heading">
             <div>
@@ -1277,10 +1275,9 @@ export default function Profile() {
                 )}
               </div>
             </>
-                  )}
+          )}
         </main>
-      )}
-    </div>
+      </div>
     </div>
   );
 }
