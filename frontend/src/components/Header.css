@@ -159,21 +159,6 @@
   -webkit-backdrop-filter: blur(4px);
 }
 
-/* .home-note-modal {
-  width: 485px;
-  max-width: 100%;
-  max-height: 90vh;
-  overflow-y: auto;
-  padding: 24px;
-  box-sizing: border-box;
-  background: #fffdf9;
-  border: 1px solid #eee7dd;
-  border-radius: 15px;
-  box-shadow: 0 22px 60px rgba(0, 0, 0, 0.20);
-  color: #26352e;
-  font-family: "Inter", Arial, sans-serif;
-  animation: homeNoteModalOpen 0.2s ease;
-} */
 
 .home-note-modal {
   width: 520px;
