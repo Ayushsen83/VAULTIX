@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import api, { fetchFreshCsrfToken } from "../services/api";
-import Header from "../components/Header";
+ import Header from "../components/Header";
 
 import "./Home.css";
 
