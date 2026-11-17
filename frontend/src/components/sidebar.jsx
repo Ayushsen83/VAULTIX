@@ -1,89 +1,4 @@
-// import React from "react";
-// import { NavLink, useNavigate } from "react-router-dom";
-// import api from "../services/api";
-// import "./Sidebar.css";
-
-// export default function Sidebar() {
-//   const navigate = useNavigate();
-
-//   const handleLogout = async () => {
-//     try {
-//       await api.post("/auth/logout");
-//     } catch (error) {
-//       console.error("Logout error:", error);
-//     } finally {
-//       navigate("/login", { replace: true });
-//     }
-//   };
-
-//   return (
-//     <aside className="app-sidebar">
-//       <div className="sidebar-brand">
-//         <div className="sidebar-brand-icon">V</div>
-
-//         <div>
-//           <h2>VAULTIX</h2>
-//           <span>Your Digital Locker</span>
-//         </div>
-//       </div>
-
-//       <nav className="sidebar-navigation">
-//         <NavLink
-//           to="/home"
-//           className={({ isActive }) =>
-//             isActive ? "sidebar-link active" : "sidebar-link"
-//           }
-//         >
-//           <span className="sidebar-link-icon">⌂</span>
-//           <span>Home</span>
-//         </NavLink>
-
-//         <NavLink
-//           to="/Documents"
-//           className={({ isActive }) =>
-//             isActive ? "sidebar-link active" : "sidebar-link"
-//           }
-//         >
-//           <span className="sidebar-link-icon">▤</span>
-//           <span>Documents</span>
-//         </NavLink>
-
-//         <NavLink
-//           to="/notes"
-//           className={({ isActive }) =>
-//             isActive ? "sidebar-link active" : "sidebar-link"
-//           }
-//         >
-//           <span className="sidebar-link-icon">▧</span>
-//           <span>Notes</span>
-//         </NavLink>
-
-//         <NavLink
-//           to="/profile"
-//           className={({ isActive }) =>
-//             isActive ? "sidebar-link active" : "sidebar-link"
-//           }
-//         >
-//           <span className="sidebar-link-icon">♙</span>
-//           <span>Profile</span>
-//         </NavLink>
-//       </nav>
-
-//       <div className="sidebar-bottom">
-//         <button
-//           type="button"
-//           className="sidebar-logout"
-//           onClick={handleLogout}
-//         >
-//           <span className="sidebar-link-icon">↪</span>
-//           <span>Logout</span>
-//         </button>
-//       </div>
-//     </aside>
-//   );
-// }
-
-import React from "react";
+import React, { useState } from "react";
 import { NavLink, useNavigate } from "react-router-dom";
 import api from "../services/api";
 import "./Sidebar.css";
@@ -97,26 +12,6 @@ function MenuIcon({ close = false }) {
     </span>
   );
 }
-
-// function HomeIcon() {
-//   return <span className="sidebar-link-icon">⌂</span>;
-// }
-
-// function DocumentsIcon() {
-//   return <span className="sidebar-link-icon">▤</span>;
-// }
-
-// function NotesIcon() {
-//   return <span className="sidebar-link-icon">▧</span>;
-// }
-
-// function ProfileIcon() {
-//   return <span className="sidebar-link-icon">◉</span>;
-// }
-
-// function LogoutIcon() {
-//   return <span className="sidebar-link-icon">↪</span>;
-// }
 
 function HomeIcon() {
   return (
@@ -213,13 +108,23 @@ function LogoutIcon() {
 }
 
 export default function Sidebar({
-  collapsed = false,
-  setCollapsed = () => {},
-  mobileOpen = false,
-  setMobileOpen = () => {},
+  collapsed: controlledCollapsed,
+  setCollapsed: controlledSetCollapsed,
+  mobileOpen: controlledMobileOpen,
+  setMobileOpen: controlledSetMobileOpen,
 }) {
   const navigate = useNavigate();
-  const [loggingOut, setLoggingOut] = React.useState(false);
+  const [internalCollapsed, setInternalCollapsed] = useState(false);
+  const [internalMobileOpen, setInternalMobileOpen] = useState(false);
+  const [loggingOut, setLoggingOut] = useState(false);
+
+  const isCollapsed =
+    controlledCollapsed !== undefined ? controlledCollapsed : internalCollapsed;
+  const setCollapsed = controlledSetCollapsed || setInternalCollapsed;
+
+  const isMobileOpen =
+    controlledMobileOpen !== undefined ? controlledMobileOpen : internalMobileOpen;
+  const setMobileOpen = controlledSetMobileOpen || setInternalMobileOpen;
 
   const closeMobileSidebar = () => {
     setMobileOpen(false);
@@ -243,13 +148,13 @@ export default function Sidebar({
   return (
     <>
       {/* Mobile hamburger button */}
-      {!mobileOpen && (
+      {!isMobileOpen && (
         <button
           type="button"
           className="mobile-menu-trigger"
           onClick={() => setMobileOpen(true)}
           aria-label="Open sidebar"
-          aria-expanded={mobileOpen}
+          aria-expanded={isMobileOpen}
           aria-controls="vaultix-sidebar"
         >
           <MenuIcon />
@@ -257,7 +162,7 @@ export default function Sidebar({
       )}
 
       {/* Background overlay */}
-      {mobileOpen && (
+      {isMobileOpen && (
         <button
           type="button"
           className="sidebar-backdrop"
@@ -271,8 +176,8 @@ export default function Sidebar({
         id="vaultix-sidebar"
         className={[
           "app-sidebar",
-          collapsed ? "is-collapsed" : "",
-          mobileOpen ? "is-mobile-open" : "",
+          isCollapsed ? "is-collapsed" : "",
+          isMobileOpen ? "is-mobile-open" : "",
         ]
           .filter(Boolean)
           .join(" ")}
@@ -280,7 +185,11 @@ export default function Sidebar({
         {/* Brand section */}
         <div className="sidebar-brand">
           <div className="sidebar-brand-content">
-            <img src="/QuadravaulLogo.png" alt="Vaultix Logo" className="sidebar-brand-logo-img"/>
+            <img
+              src="/QuadravaulLogo.png"
+              alt="Vaultix Logo"
+              className="sidebar-brand-logo-img"
+            />
 
             <div className="sidebar-brand-text">
               <h2>VAULTIX</h2>
@@ -293,8 +202,8 @@ export default function Sidebar({
             type="button"
             className="sidebar-toggle desktop-toggle"
             onClick={() => setCollapsed((previous) => !previous)}
-            aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
-            title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+            aria-label={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+            title={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
           >
             <MenuIcon />
           </button>
@@ -312,7 +221,6 @@ export default function Sidebar({
         </div>
 
         {/* Navigation section */}
-
         <nav className="sidebar-navigation">
           <NavLink
             to="/home"

@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import api, { refreshCsrfToken } from "../services/api";
 import DocumentsSkeleton from "../components/skeletons/DocumentsSkeleton";
 import "./Documents.css";
@@ -16,6 +17,7 @@ const getInitials = (name = "") => {
 };
 
 export default function Documents() {
+  const navigate = useNavigate();
   const [files, setFiles] = useState([]);
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
@@ -68,10 +70,7 @@ export default function Documents() {
   // Close search dropdown when clicking outside
   useEffect(() => {
     const handleOutsideClick = (event) => {
-      if (
-        searchRef.current &&
-        !searchRef.current.contains(event.target)
-      ) {
+      if (searchRef.current && !searchRef.current.contains(event.target)) {
         setShowSearchResults(false);
       }
     };
@@ -88,9 +87,7 @@ export default function Documents() {
     const token = await refreshCsrfToken();
 
     if (!token) {
-      throw new Error(
-        "Could not obtain a security token. Please try again."
-      );
+      throw new Error("Could not obtain a security token. Please try again.");
     }
 
     return token;
@@ -120,7 +117,7 @@ export default function Documents() {
 
       setError(
         err.response?.data?.message ||
-          "Unable to load documents. Please try again."
+          "Unable to load documents. Please try again.",
       );
     } finally {
       setLoading(false);
@@ -197,24 +194,19 @@ export default function Documents() {
     const allowed = ["pdf", "mp3", "wav", "m4a"];
 
     if (!allowed.includes(extension)) {
-      setUploadError(
-        "Only PDF, MP3, WAV and M4A files are allowed."
-      );
+      setUploadError("Only PDF, MP3, WAV and M4A files are allowed.");
 
       event.target.value = "";
       return;
     }
 
-    const maxSize =
-      extension === "pdf"
-        ? 50 * 1024 * 1024
-        : 10 * 1024 * 1024;
+    const maxSize = extension === "pdf" ? 50 * 1024 * 1024 : 10 * 1024 * 1024;
 
     if (file.size > maxSize) {
       setUploadError(
         extension === "pdf"
           ? "PDF file must be smaller than 50 MB."
-          : "Audio file must be smaller than 10 MB."
+          : "Audio file must be smaller than 10 MB.",
       );
 
       event.target.value = "";
@@ -238,16 +230,13 @@ export default function Documents() {
         onUploadProgress: (progressEvent) => {
           if (progressEvent.total) {
             const percent = Math.round(
-              (progressEvent.loaded * 100) /
-                progressEvent.total
+              (progressEvent.loaded * 100) / progressEvent.total,
             );
 
             setUploadProgress(percent);
 
             setUploadStatus(
-              percent >= 100
-                ? "Finishing upload..."
-                : "Uploading..."
+              percent >= 100 ? "Finishing upload..." : "Uploading...",
             );
           }
         },
@@ -271,7 +260,7 @@ export default function Documents() {
       setUploadError(
         err.response?.data?.message ||
           err.message ||
-          "Unable to upload document. Please try again."
+          "Unable to upload document. Please try again.",
       );
 
       setTimeout(() => {
@@ -288,7 +277,7 @@ export default function Documents() {
   // Delete document
   const handleDelete = async (file) => {
     const confirmed = window.confirm(
-      `Are you sure you want to delete "${file.file_name}"?`
+      `Are you sure you want to delete "${file.file_name}"?`,
     );
 
     if (!confirmed) return;
@@ -305,7 +294,7 @@ export default function Documents() {
       alert(
         err.response?.data?.message ||
           err.message ||
-          "Unable to delete document."
+          "Unable to delete document.",
       );
     }
   };
@@ -313,12 +302,9 @@ export default function Documents() {
   // Preview document
   const handlePreview = async (file) => {
     try {
-      const response = await api.get(
-        `/files/${file.id}/preview`,
-        {
-          responseType: "blob",
-        }
-      );
+      const response = await api.get(`/files/${file.id}/preview`, {
+        responseType: "blob",
+      });
 
       const blobUrl = URL.createObjectURL(response.data);
       const newWindow = window.open(blobUrl, "_blank");
@@ -326,9 +312,7 @@ export default function Documents() {
       if (!newWindow) {
         URL.revokeObjectURL(blobUrl);
 
-        alert(
-          "Please allow pop-ups to preview this document."
-        );
+        alert("Please allow pop-ups to preview this document.");
       } else {
         setTimeout(() => {
           URL.revokeObjectURL(blobUrl);
@@ -337,22 +321,16 @@ export default function Documents() {
     } catch (err) {
       console.error("Preview document error:", err);
 
-      alert(
-        err.response?.data?.message ||
-          "Unable to preview this document."
-      );
+      alert(err.response?.data?.message || "Unable to preview this document.");
     }
   };
 
   // Download document
   const handleDownload = async (file) => {
     try {
-      const response = await api.get(
-        `/files/${file.id}/download`,
-        {
-          responseType: "blob",
-        }
-      );
+      const response = await api.get(`/files/${file.id}/download`, {
+        responseType: "blob",
+      });
 
       const url = URL.createObjectURL(response.data);
       const link = document.createElement("a");
@@ -370,38 +348,29 @@ export default function Documents() {
     } catch (err) {
       console.error("Download document error:", err);
 
-      alert(
-        err.response?.data?.message ||
-          "Unable to download document."
-      );
+      alert(err.response?.data?.message || "Unable to download document.");
     }
   };
 
   // Calculate total storage usage
   const totalUsed = files.reduce(
-    (total, file) =>
-      total + Number(file.size_bytes || 0),
-    0
+    (total, file) => total + Number(file.size_bytes || 0),
+    0,
   );
 
   // Calculate storage percentage
   const usagePercentage = Math.min(
     (totalUsed / (100 * 1024 * 1024)) * 100,
-    100
+    100,
   );
 
   return (
     <div className="documents-layout">
       <main className="documents-main">
-
         {/* HEADER */}
         <header className="documents-header">
-
           {/* SEARCH */}
-          <div
-            className="documents-search-wrapper"
-            ref={searchRef}
-          >
+          <div className="documents-search-wrapper" ref={searchRef}>
             <div className="documents-search">
               <span>⌕</span>
 
@@ -438,14 +407,9 @@ export default function Documents() {
             {/* SEARCH RESULTS DROPDOWN */}
             {showSearchResults && search.trim() && (
               <div className="documents-search-dropdown">
-
                 <div className="documents-search-dropdown-heading">
                   <span>SEARCH RESULTS</span>
-                  {!loading && (
-                    <span>
-                      {files.length} found
-                    </span>
-                  )}
+                  {!loading && <span>{files.length} found</span>}
                 </div>
 
                 {loading ? (
@@ -459,32 +423,25 @@ export default function Documents() {
                         type="button"
                         className="documents-search-result"
                         key={file.id}
-                        onClick={() =>
-                          handleSearchResultClick(file)
-                        }
+                        onClick={() => handleSearchResultClick(file)}
                       >
                         <div
-                          className={`documents-search-result-icon ${
-                            getFileType(file).toLowerCase()
-                          }`}
+                          className={`documents-search-result-icon ${getFileType(
+                            file,
+                          ).toLowerCase()}`}
                         >
-                          {getFileType(file) === "PDF"
-                            ? "PDF"
-                            : "♫"}
+                          {getFileType(file) === "PDF" ? "PDF" : "♫"}
                         </div>
 
                         <div className="documents-search-result-info">
                           <strong>{file.file_name}</strong>
 
                           <span>
-                            {getFileType(file)} ·{" "}
-                            {formatSize(file.size_bytes)}
+                            {getFileType(file)} · {formatSize(file.size_bytes)}
                           </span>
                         </div>
 
-                        <span className="documents-search-result-arrow">
-                          ↗
-                        </span>
+                        <span className="documents-search-result-arrow">↗</span>
                       </button>
                     ))}
                   </div>
@@ -492,9 +449,7 @@ export default function Documents() {
                   <div className="documents-search-message">
                     <span>⌕</span>
                     <strong>No documents found</strong>
-                    <small>
-                      Try searching with another file name.
-                    </small>
+                    <small>Try searching with another file name.</small>
                   </div>
                 )}
 
@@ -516,24 +471,26 @@ export default function Documents() {
               })}
             </span>
 
-            <div className="documents-avatar">
+            <button
+              type="button"
+              className="documents-avatar"
+              onClick={() => navigate("/profile")}
+              aria-label="Open profile"
+              title="View profile"
+            >
               {getInitials(userName)}
-            </div>
+            </button>
           </div>
         </header>
 
         {/* PAGE HEADING */}
         <section className="documents-heading">
           <div>
-            <span className="documents-eyebrow">
-              YOUR SECURE STORAGE
-            </span>
+            <span className="documents-eyebrow">YOUR SECURE STORAGE</span>
 
             <h1>My Documents</h1>
 
-            <p>
-              All your important files, safely stored in one place.
-            </p>
+            <p>All your important files, safely stored in one place.</p>
           </div>
 
           <button
@@ -583,9 +540,7 @@ export default function Documents() {
           <div className="documents-upload-error">
             {uploadError}
 
-            <button onClick={() => setUploadError("")}>
-              ×
-            </button>
+            <button onClick={() => setUploadError("")}>×</button>
           </div>
         )}
 
@@ -672,9 +627,7 @@ export default function Documents() {
           <div className="documents-message documents-error">
             {error}
 
-            <button onClick={fetchFiles}>
-              Try Again
-            </button>
+            <button onClick={fetchFiles}>Try Again</button>
           </div>
         ) : files.length === 0 ? (
           <div className="documents-empty">
@@ -683,8 +636,8 @@ export default function Documents() {
             <h2>No documents found</h2>
 
             <p>
-              Your important files deserve a secure home.
-              Upload your first document!
+              Your important files deserve a secure home. Upload your first
+              document!
             </p>
 
             <button onClick={() => inputRef.current?.click()}>
@@ -694,10 +647,7 @@ export default function Documents() {
         ) : (
           <section className="documents-grid">
             {files.map((file) => (
-              <article
-                className="document-card"
-                key={file.id}
-              >
+              <article className="document-card" key={file.id}>
                 <div className="document-card-top">
                   <div
                     className={`document-file-icon ${getFileType(file).toLowerCase()}`}
@@ -719,13 +669,9 @@ export default function Documents() {
                 </div>
 
                 <div className="document-card-actions">
-                  <button onClick={() => handlePreview(file)}>
-                    Preview
-                  </button>
+                  <button onClick={() => handlePreview(file)}>Preview</button>
 
-                  <button onClick={() => handleDownload(file)}>
-                    Download
-                  </button>
+                  <button onClick={() => handleDownload(file)}>Download</button>
 
                   <button
                     className="document-delete-btn"

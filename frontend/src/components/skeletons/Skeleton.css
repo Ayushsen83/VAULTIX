@@ -416,3 +416,316 @@
     grid-template-columns: 1fr;
   }
 }
+
+
+
+/* ==========================================
+   VAULTIX - FULL PROFILE PAGE SKELETON
+   Warm Brown, Cream & Muted Gold Theme
+========================================== */
+
+.profile-skeleton {
+  --profile-skeleton-base: #e7ddd3;
+  --profile-skeleton-highlight: #fffaf5;
+
+  width: 100%;
+  min-width: 0;
+  animation: profile-skeleton-appear 0.2s ease-out;
+}
+
+/* Skeleton elements use the existing shimmer */
+.profile-skeleton .skeleton-block {
+  background-color: var(--profile-skeleton-base);
+  border-radius: 6px;
+}
+
+/* PAGE HEADING */
+
+.profile-skeleton .profile-page-heading {
+  align-items: center;
+}
+
+.profile-skeleton .profile-page-heading > div {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+}
+
+/* HERO BANNER */
+
+.profile-skeleton-banner {
+  min-height: 174px;
+}
+
+.profile-skeleton-banner .profile-hero-copy {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.profile-skeleton-banner .skeleton-block {
+  background-color: #ddc8b5;
+}
+
+.profile-skeleton-banner-art {
+  position: relative;
+  display: flex;
+  flex: 0 0 190px;
+  align-items: center;
+  justify-content: center;
+  height: 126px;
+}
+
+.profile-skeleton-banner-art > .skeleton-block:first-child {
+  border: 1px solid #d8bda4;
+  border-radius: 10px;
+  background: #f3e5d8;
+  transform: rotate(-7deg);
+}
+
+.profile-skeleton-banner-art > .skeleton-block:last-child {
+  position: absolute;
+  right: 16px;
+  bottom: 2px;
+  border-radius: 10px;
+  background: #b18a66;
+}
+
+/* ACCOUNT SUMMARY */
+
+.profile-skeleton-header {
+  pointer-events: none;
+}
+
+.profile-skeleton-header > .skeleton-block {
+  background-color: #e9d8c6;
+}
+
+.profile-skeleton-user-info {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 9px;
+  min-width: 0;
+}
+
+.profile-skeleton-meta {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 2px;
+}
+
+/* MAIN SECTIONS */
+
+.profile-skeleton-sections {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 16px;
+  width: 100%;
+  min-width: 0;
+}
+
+.profile-skeleton-section {
+  width: 100%;
+  min-width: 0;
+  padding: clamp(19px, 2.1vw, 27px);
+
+  border: 1px solid #e9e2db;
+  border-radius: 15px;
+
+  background: #fff;
+  box-shadow: 0 4px 16px rgb(49 35 24 / 5%);
+}
+
+/* SECTION HEADING */
+
+.profile-skeleton-section-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 15px;
+  margin-bottom: 23px;
+}
+
+.profile-skeleton-section-heading > div {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 10px;
+  min-width: 0;
+}
+
+.profile-skeleton-section-heading > .skeleton-block:last-child {
+  border-radius: 12px;
+  background: #f0e5d9;
+}
+
+/* PERSONAL INFORMATION FIELDS */
+
+.profile-skeleton-fields {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 23px 25px;
+  width: 100%;
+}
+
+.profile-skeleton-field {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 10px;
+  min-width: 0;
+}
+
+.profile-skeleton-field .skeleton-block {
+  max-width: 100%;
+}
+
+.profile-skeleton-field .profile-skeleton-input {
+  border: 1px solid #e9e2db;
+  border-radius: 8px;
+  background: #faf7f3;
+}
+
+/* FORM ACTIONS */
+
+.profile-skeleton-actions {
+  display: flex;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 25px;
+}
+
+.profile-skeleton-actions .skeleton-block {
+  border-radius: 8px;
+  background: #e9ddd1;
+}
+
+/* ACCOUNT SECURITY */
+
+.profile-skeleton-security-list {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+  min-width: 0;
+}
+
+.profile-skeleton-security-card {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  width: 100%;
+  min-width: 0;
+  min-height: 85px;
+  padding: 16px;
+
+  border: 1px solid #eee5dc;
+  border-radius: 12px;
+
+  background: #fdfbf9;
+}
+
+.profile-skeleton-security-card > .skeleton-block:first-child {
+  border-radius: 12px;
+  background: #f0e5d9;
+}
+
+.profile-skeleton-security-info {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 9px;
+  min-width: 0;
+}
+
+.profile-skeleton-security-card > .skeleton-block:last-child {
+  border-radius: 8px;
+  background: #e9ddd1;
+}
+
+/* APPEARANCE */
+
+@keyframes profile-skeleton-appear {
+  from {
+    opacity: 0.5;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+/* TABLET */
+
+@media (max-width: 768px) {
+  .profile-skeleton-fields {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 20px 15px;
+  }
+
+  .profile-skeleton-banner-art {
+    flex-basis: 130px;
+  }
+
+  .profile-skeleton-banner {
+    gap: 12px;
+  }
+}
+
+/* MOBILE */
+
+@media (max-width: 600px) {
+  .profile-skeleton-banner {
+    min-height: 155px;
+    padding: 20px;
+  }
+
+  .profile-skeleton-banner-art {
+    display: none;
+  }
+
+  .profile-skeleton-header {
+    flex-wrap: wrap;
+    gap: 12px;
+    padding: 16px;
+  }
+
+  .profile-skeleton-user-info {
+    flex-basis: calc(100% - 75px);
+  }
+
+  .profile-skeleton-header > .skeleton-block:last-child {
+    margin-left: 70px;
+  }
+
+  .profile-skeleton-fields {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 19px;
+  }
+
+  .profile-skeleton-section {
+    padding: 19px;
+  }
+
+  .profile-skeleton-security-card {
+    gap: 10px;
+    padding: 12px;
+  }
+
+  .profile-skeleton-security-card > .skeleton-block:first-child {
+    width: 36px !important;
+    height: 36px !important;
+  }
+}
+
+/* ACCESSIBILITY */
+
+@media (prefers-reduced-motion: reduce) {
+  .profile-skeleton {
+    animation: none;
+  }
+}
