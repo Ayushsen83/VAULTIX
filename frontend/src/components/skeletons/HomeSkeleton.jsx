@@ -1,6 +1,7 @@
 import Skeleton from "./Skeleton";
 import "./Skeleton.css";
 
+
 export default function HomeSkeleton() {
   return (
     <div

@@ -1,5 +1,6 @@
 import "./Skeleton.css";
 
+
 export default function Skeleton({
   width,
   height = "16px",
