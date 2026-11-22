@@ -1,10 +1,7 @@
-
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import ProfileSkeleton from "../components/skeletons/ProfileSkeleton";
-
 import api, { fetchFreshCsrfToken } from "../services/api";
-
 import "./profile.css";
 
 const INITIAL_PROFILE = {
@@ -79,28 +76,18 @@ const getEmailVerificationStatus = (user) => {
   ];
 
   const field = fields.find((key) =>
-    Object.prototype.hasOwnProperty.call(user, key)
+    Object.prototype.hasOwnProperty.call(user, key),
   );
 
   if (!field) return null;
 
   const value = user[field];
 
-  if (
-    value === true ||
-    value === 1 ||
-    value === "true" ||
-    value === "1"
-  ) {
+  if (value === true || value === 1 || value === "true" || value === "1") {
     return true;
   }
 
-  if (
-    value === false ||
-    value === 0 ||
-    value === "false" ||
-    value === "0"
-  ) {
+  if (value === false || value === 0 || value === "false" || value === "0") {
     return false;
   }
 
@@ -111,11 +98,7 @@ const normalizeUser = (user) => ({
   userId: user.user_id ?? user.id ?? null,
   name: user.name ?? "",
   email: user.email ?? "",
-  phoneNumber:
-    user.phonenumber ??
-    user.phone_number ??
-    user.phoneNumber ??
-    "",
+  phoneNumber: user.phonenumber ?? user.phone_number ?? user.phoneNumber ?? "",
   age: user.age ?? null,
   createdAt: user.created_at ?? user.createdAt ?? null,
   emailVerified: getEmailVerificationStatus(user),
@@ -211,8 +194,7 @@ export default function Profile() {
     return (
       formData.name !== profile.name ||
       formData.phoneNumber !== profile.phoneNumber ||
-      formData.age !==
-        (profile.age == null ? "" : String(profile.age))
+      formData.age !== (profile.age == null ? "" : String(profile.age))
     );
   }, [formData, profile]);
 
@@ -240,10 +222,7 @@ export default function Profile() {
         setFieldErrors({});
         setMessage({ type: "", text: "" });
       } catch (requestError) {
-        if (
-          signal?.aborted ||
-          requestError.code === "ERR_CANCELED"
-        ) {
+        if (signal?.aborted || requestError.code === "ERR_CANCELED") {
           return;
         }
 
@@ -255,8 +234,8 @@ export default function Profile() {
         setError(
           getErrorMessage(
             requestError,
-            "Unable to load your profile. Please try again."
-          )
+            "Unable to load your profile. Please try again.",
+          ),
         );
       } finally {
         if (!signal?.aborted) {
@@ -264,7 +243,7 @@ export default function Profile() {
         }
       }
     },
-    [navigate]
+    [navigate],
   );
 
   useEffect(() => {
@@ -390,7 +369,7 @@ export default function Profile() {
 
       if (!csrfToken) {
         throw new Error(
-          "Unable to obtain a security token. Please refresh the page and try again."
+          "Unable to obtain a security token. Please refresh the page and try again.",
         );
       }
 
@@ -405,7 +384,7 @@ export default function Profile() {
       if (!response.data?.success || !updatedUser) {
         throw new Error(
           response.data?.message ||
-            "The server did not return the updated profile."
+            "The server did not return the updated profile.",
         );
       }
 
@@ -430,7 +409,7 @@ export default function Profile() {
         type: "error",
         text: getErrorMessage(
           requestError,
-          "Unable to update your profile. Please try again."
+          "Unable to update your profile. Please try again.",
         ),
       });
     } finally {
@@ -494,9 +473,7 @@ export default function Profile() {
 
     if (!passwordData.confirmNewPassword) {
       errors.confirmNewPassword = "Please confirm your new password.";
-    } else if (
-      passwordData.newPassword !== passwordData.confirmNewPassword
-    ) {
+    } else if (passwordData.newPassword !== passwordData.confirmNewPassword) {
       errors.confirmNewPassword = "Passwords do not match.";
     }
 
@@ -531,7 +508,7 @@ export default function Profile() {
 
       if (!csrfToken) {
         throw new Error(
-          "Unable to obtain a security token. Please refresh the page and try again."
+          "Unable to obtain a security token. Please refresh the page and try again.",
         );
       }
 
@@ -545,13 +522,11 @@ export default function Profile() {
           headers: {
             "X-CSRF-Token": csrfToken,
           },
-        }
+        },
       );
 
       if (!response.data?.success) {
-        throw new Error(
-          response.data?.message || "Password update failed."
-        );
+        throw new Error(response.data?.message || "Password update failed.");
       }
 
       // Backend increments token_version and requires a fresh login.
@@ -579,7 +554,7 @@ export default function Profile() {
         type: "error",
         text: getErrorMessage(
           requestError,
-          "Unable to change your password. Please try again."
+          "Unable to change your password. Please try again.",
         ),
       });
     } finally {
@@ -597,7 +572,7 @@ export default function Profile() {
 
     if (isEditing && hasChanges) {
       const discardChanges = window.confirm(
-        "You have unsaved changes. Do you want to discard them?"
+        "You have unsaved changes. Do you want to discard them?",
       );
 
       if (!discardChanges) return false;
@@ -659,629 +634,596 @@ export default function Profile() {
       );
     }
 
-    return (
-      <span className="email-status unavailable">
-        Status
-      </span>
-    );
+    return <span className="email-status unavailable">Status</span>;
   };
 
   // PAGE UI
   return (
     <div className="profile-layout">
-      
       <div className="profile-main">
-  {loading ? (
-    <ProfileSkeleton />
-  ) : (
-    <main className="profile-content">
-          {/* PAGE HEADING */}
-          <div className="profile-page-heading">
-            <div>
-              <span className="profile-eyebrow">
-                ACCOUNT MANAGEMENT
-              </span>
-
+        {loading ? (
+          <ProfileSkeleton />
+        ) : (
+          <main className="profile-content">
+            {/* PROFILE PAGE TITLE */}
+            <div className="profile-page-heading">
+              <span className="profile-eyebrow">ACCOUNT MANAGEMENT</span>
               <h1>My Profile</h1>
-
-              {/* <p>
-                Manage your personal information and keep your
-                VAULTIX account secure.
-              </p> */}
             </div>
-          </div>
 
-          {/* VAULTIX PROFILE BANNER */}
-          <section className="profile-hero-banner" aria-label="VAULTIX account overview">
-            <div className="profile-hero-copy">
-              <span className="profile-hero-kicker">YOUR   IDENTITY</span>
-              <h2>Protected Account Space.</h2>
-              <p>Manage your personal details and keep your digital vault protected from one place.</p>
-              {/* <div className="profile-hero-points">
+            {/* VAULTIX PROFILE BANNER */}
+            <section
+              className="profile-hero-banner"
+              aria-label="VAULTIX account overview"
+            >
+              <div className="profile-hero-copy">
+                <span className="profile-hero-kicker">YOUR IDENTITY</span>
+                <h2>Protected Account Space.</h2>
+                <p>
+                  Manage your personal details and keep your digital vault
+                  protected from one place.
+                </p>
+                {/* <div className="profile-hero-points">
                 <span><i aria-hidden="true">✓</i> Personal details</span>
                 <span><i aria-hidden="true">✓</i> Account protection</span>
               </div> */}
-            </div>
-            <div className="profile-hero-art" aria-hidden="true">
-              <div className="profile-hero-orbit profile-hero-orbit-one" />
-              <div className="profile-hero-orbit profile-hero-orbit-two" />
-              <div className="profile-hero-document">
-                <span className="profile-hero-document-line" />
-                <span className="profile-hero-document-line short" />
-                <span className="profile-hero-document-line" />
-                <span className="profile-hero-document-line medium" />
               </div>
-              <div className="profile-hero-shield">✓</div>
-            </div>
-          </section>
-
-          {/* PROFILE HEADER */}
-          {!loading && !error && profile.userId && (
-            <section
-              className="profile-header"
-              aria-label="Account summary"
-            >
-              <div
-                className="profile-header-initials"
-                aria-label={`Profile initials: ${getInitials(profile.name)}`}
-              >
-                {getInitials(profile.name)}
-              </div>
-
-              <div className="profile-header-info">
-                <h2>{profile.name || "User"}</h2>
-
-                <p className="profile-user-email">
-                  {profile.email || "Email not available"}
-                </p>
-
-                <div className="profile-header-meta">
-                  <span className="profile-account-label">
-                    <span className="status-dot" aria-hidden="true" />
-                    Active account
-                  </span>
-
-                  <span className="profile-created-date">
-                    Member since {formatAccountDate(profile.createdAt)}
-                  </span>
+              <div className="profile-hero-art" aria-hidden="true">
+                <div className="profile-hero-orbit profile-hero-orbit-one" />
+                <div className="profile-hero-orbit profile-hero-orbit-two" />
+                <div className="profile-hero-document">
+                  <span className="profile-hero-document-line" />
+                  <span className="profile-hero-document-line short" />
+                  <span className="profile-hero-document-line" />
+                  <span className="profile-hero-document-line medium" />
                 </div>
+                <div className="profile-hero-shield">✓</div>
               </div>
-
-              <button
-                type="button"
-                className="profile-edit-button"
-                onClick={handleEditProfile}
-                disabled={saving || isEditing}
-              >
-                <span aria-hidden="true">✎</span>
-                {isEditing ? "Editing Profile" : "Edit Profile"}
-              </button>
             </section>
-          )}
 
-          {/* LOADING STATE */}
-          {loading && (
-            <div
-              className="profile-state"
-              role="status"
-              aria-live="polite"
-            >
-              <span className="profile-spinner" aria-hidden="true" />
-              Loading your account...
-            </div>
-          )}
+            {/* PROFILE HEADER */}
+            {!loading && !error && profile.userId && (
+              <section className="profile-header" aria-label="Account summary">
+                <div
+                  className="profile-header-initials"
+                  aria-label={`Profile initials: ${getInitials(profile.name)}`}
+                >
+                  {getInitials(profile.name)}
+                </div>
 
-          {/* ERROR STATE */}
-          {!loading && error && (
-            <div className="profile-error" role="alert">
-              <div>
-                <strong>Unable to load profile</strong>
-                <p>{error}</p>
-              </div>
+                <div className="profile-header-info">
+                  <h2>{profile.name || "User"}</h2>
 
-              <button
-                type="button"
-                onClick={() => fetchProfile()}
-                disabled={loading}
-              >
-                Try Again
-              </button>
-            </div>
-          )}
+                  <p className="profile-user-email">
+                    {profile.email || "Email not available"}
+                  </p>
 
-          {/* PROFILE CONTENT */}
-          {!loading && !error && profile.userId && (
-            <>
-              {/* TAB PANEL */}
-              <div className="profile-sections-stack">
-                {/* PERSONAL INFORMATION */}
-                {true && (
-                  <div className="personal-information-section">
-                    <div className="section-heading">
-                      <div>
-                        <span className="section-eyebrow">
-                          YOUR ACCOUNT
-                        </span>
+                  <div className="profile-header-meta">
+                    <span className="profile-account-label">
+                      <span className="status-dot" aria-hidden="true" />
+                      Active account
+                    </span>
 
-                        <h2>Personal Information</h2>
-
-                        <p>
-                          Your personal details associated with
-                          your VAULTIX account.
-                        </p>
-                      </div>
-
-                      <div
-                        className="section-heading-icon"
-                        aria-hidden="true"
-                      >
-                        ♙
-                      </div>
-                    </div>
-
-                    <form
-                      className="personal-information-form"
-                      onSubmit={handleSaveProfile}
-                      noValidate
-                    >
-                      <div className="personal-information-grid">
-                        {/* FULL NAME */}
-                        <div className="personal-information-field">
-                          {isEditing ? (
-                            <>
-                              <label htmlFor="profile-name">
-                                Full Name{" "}
-                                <span className="required-mark">*</span>
-                              </label>
-
-                              <input
-                                id="profile-name"
-                                name="name"
-                                type="text"
-                                value={formData.name}
-                                onChange={handleInputChange}
-                                maxLength={100}
-                                autoComplete="name"
-                                placeholder="Enter your full name"
-                                disabled={saving}
-                                aria-invalid={Boolean(fieldErrors.name)}
-                                aria-describedby={
-                                  fieldErrors.name
-                                    ? "name-error"
-                                    : undefined
-                                }
-                              />
-
-                              {fieldErrors.name && (
-                                <span
-                                  id="name-error"
-                                  className="profile-field-error"
-                                  role="alert"
-                                >
-                                  {fieldErrors.name}
-                                </span>
-                              )}
-                            </>
-                          ) : (
-                            <>
-                              <div className="profile-field-label">
-                                Full Name
-                              </div>
-
-                              <div className="profile-readonly-value">
-                                {profile.name || "Not provided"}
-                              </div>
-                            </>
-                          )}
-                        </div>
-
-                        {/* EMAIL ADDRESS */}
-                        <div className="personal-information-field">
-                          <label htmlFor="profile-email">
-                            Email Address
-                          </label>
-
-                          <input
-                            id="profile-email"
-                            type="email"
-                            value={profile.email}
-                            readOnly
-                            aria-readonly="true"
-                            className="profile-email-readonly"
-                          />
-
-                          <span className="profile-readonly-hint">
-                            Your registered email cannot be changed here.
-                          </span>
-                        </div>
-
-                        {/* PHONE NUMBER */}
-                        <div className="personal-information-field">
-                          {isEditing ? (
-                            <>
-                              <label htmlFor="profile-phone">
-                                Phone Number
-                              </label>
-
-                              <input
-                                id="profile-phone"
-                                name="phoneNumber"
-                                type="tel"
-                                inputMode="numeric"
-                                pattern="[789][0-9]{9}"
-                                value={formData.phoneNumber}
-                                onChange={handlePhoneChange}
-                                maxLength={10}
-                                autoComplete="tel"
-                                placeholder="Enter 10-digit mobile number"
-                                disabled={saving}
-                                aria-invalid={Boolean(
-                                  fieldErrors.phoneNumber
-                                )}
-                                aria-describedby={
-                                  fieldErrors.phoneNumber
-                                    ? "phone-error"
-                                    : undefined
-                                }
-                              />
-
-                              {fieldErrors.phoneNumber && (
-                                <span
-                                  id="phone-error"
-                                  className="profile-field-error"
-                                  role="alert"
-                                >
-                                  {fieldErrors.phoneNumber}
-                                </span>
-                              )}
-                            </>
-                          ) : (
-                            <>
-                              <div className="profile-field-label">
-                                Phone Number
-                              </div>
-
-                              <div className="profile-readonly-value">
-                                {profile.phoneNumber || "Not provided"}
-                              </div>
-                            </>
-                          )}
-                        </div>
-
-                        {/* AGE */}
-                        <div className="personal-information-field">
-                          {isEditing ? (
-                            <>
-                              <label htmlFor="profile-age">
-                                Age
-                              </label>
-
-                              <input
-                                id="profile-age"
-                                name="age"
-                                type="number"
-                                min="1"
-                                max="120"
-                                step="1"
-                                value={formData.age}
-                                onChange={handleInputChange}
-                                placeholder="Enter age"
-                                disabled={saving}
-                                aria-invalid={Boolean(fieldErrors.age)}
-                                aria-describedby={
-                                  fieldErrors.age
-                                    ? "age-error"
-                                    : undefined
-                                }
-                              />
-
-                              {fieldErrors.age && (
-                                <span
-                                  id="age-error"
-                                  className="profile-field-error"
-                                  role="alert"
-                                >
-                                  {fieldErrors.age}
-                                </span>
-                              )}
-                            </>
-                          ) : (
-                            <>
-                              <div className="profile-field-label">
-                                Age
-                              </div>
-
-                              <div className="profile-readonly-value">
-                                {profile.age != null
-                                  ? `${profile.age} years`
-                                  : "Not provided"}
-                              </div>
-                            </>
-                          )}
-                        </div>
-
-                        {/* ACCOUNT CREATED */}
-                        <div className="personal-information-field">
-                          <div className="profile-field-label">
-                            Account Created
-                          </div>
-
-                          <div className="profile-readonly-value">
-                            {formatAccountDate(profile.createdAt)}
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* PROFILE FEEDBACK */}
-                      {message.text && (
-                        <div
-                          className={`profile-feedback ${message.type}`}
-                          role={
-                            message.type === "error" ? "alert" : "status"
-                          }
-                          aria-live="polite"
-                        >
-                          {message.text}
-                        </div>
-                      )}
-
-                      {/* EDIT ACTIONS */}
-                      {isEditing && (
-                        <div className="profile-form-actions">
-                          <button
-                            type="button"
-                            className="profile-cancel-button"
-                            onClick={handleCancelEdit}
-                            disabled={saving}
-                          >
-                            Cancel
-                          </button>
-
-                          <button
-                            type="submit"
-                            className="profile-save-button"
-                            disabled={saving || !hasChanges}
-                          >
-                            {saving ? "Saving..." : "Save Changes"}
-                          </button>
-                        </div>
-                      )}
-                    </form>
+                    <span className="profile-created-date">
+                      Member since {formatAccountDate(profile.createdAt)}
+                    </span>
                   </div>
-                )}
+                </div>
 
-                {/* ACCOUNT SECURITY */}
-                {true && (
-                  <div className="account-security-section">
-                    <div className="section-heading">
-                      <div>
-                        <span className="section-eyebrow">
-                          PROTECT YOUR ACCOUNT
-                        </span>
+                <button
+                  type="button"
+                  className="profile-edit-button"
+                  onClick={handleEditProfile}
+                  disabled={saving || isEditing}
+                >
+                  <span aria-hidden="true">✎</span>
+                  {isEditing ? "Editing Profile" : "Edit Profile"}
+                </button>
+              </section>
+            )}
 
-                        <h2>Account Security</h2>
+            {/* LOADING STATE */}
+            {loading && (
+              <div className="profile-state" role="status" aria-live="polite">
+                <span className="profile-spinner" aria-hidden="true" />
+                Loading your account...
+              </div>
+            )}
 
-                        <p>
-                          Manage your password and check your email
-                          verification status.
-                        </p>
-                      </div>
+            {/* ERROR STATE */}
+            {!loading && error && (
+              <div className="profile-error" role="alert">
+                <div>
+                  <strong>Unable to load profile</strong>
+                  <p>{error}</p>
+                </div>
 
-                      <div
-                        className="section-heading-icon"
-                        aria-hidden="true"
-                      >
-                        ◈
-                      </div>
-                    </div>
+                <button
+                  type="button"
+                  onClick={() => fetchProfile()}
+                  disabled={loading}
+                >
+                  Try Again
+                </button>
+              </div>
+            )}
 
-                    {/* PASSWORD MANAGEMENT */}
-                    <div className="security-group-label">
-                      PASSWORD MANAGEMENT
-                    </div>
+            {/* PROFILE CONTENT */}
+            {!loading && !error && profile.userId && (
+              <>
+                {/* TAB PANEL */}
+                <div className="profile-sections-stack">
+                  {/* PERSONAL INFORMATION */}
+                  {true && (
+                    <div className="personal-information-section">
+                      <div className="section-heading">
+                        <div>
+                          <span className="section-eyebrow">YOUR ACCOUNT</span>
 
-                    <div className="security-option-card">
-                      <div className="security-option-icon password-icon">
-                        <span aria-hidden="true">⌑</span>
-                      </div>
-
-                      <div className="security-option-details">
-                        <h3>Change Password</h3>
-
-                        <p>
-                          Update your password to help keep your
-                          account protected.
-                        </p>
-                      </div>
-
-                      <button
-                        type="button"
-                        className="security-option-action"
-                        onClick={() => {
-                          if (showPasswordForm) {
-                            resetPasswordForm();
-                          } else {
-                            setShowPasswordForm(true);
-                            setPasswordErrors({});
-                            setPasswordMessage({ type: "", text: "" });
-                          }
-                        }}
-                        disabled={changingPassword}
-                        aria-expanded={showPasswordForm}
-                        aria-controls="change-password-form"
-                      >
-                        {showPasswordForm ? "Close" : "Change"}
-                        <span aria-hidden="true">
-                          {showPasswordForm ? "−" : "+"}
-                        </span>
-                      </button>
-                    </div>
-
-                    {/* CHANGE PASSWORD FORM */}
-                    {showPasswordForm && (
-                      <form
-                        id="change-password-form"
-                        className="change-password-form"
-                        onSubmit={handleChangePassword}
-                        noValidate
-                      >
-                        <div className="change-password-heading">
-                          <h3>Update Your Password</h3>
+                          <h2>Personal Information</h2>
 
                           <p>
-                            Enter your current password and choose
-                            a strong new password.
+                            Your personal details associated with your VAULTIX
+                            account.
                           </p>
                         </div>
 
-                        {PASSWORD_FIELDS.map((field) => (
-                          <div
-                            className="password-field"
-                            key={field.name}
-                          >
-                            <label htmlFor={field.name}>
-                              {field.label}
-                            </label>
+                        <div
+                          className="section-heading-icon"
+                          aria-hidden="true"
+                        >
+                          ♙
+                        </div>
+                      </div>
 
-                            <div className="password-input-wrapper">
-                              <input
-                                id={field.name}
-                                name={field.name}
-                                type={
-                                  showPasswords[field.name]
-                                    ? "text"
-                                    : "password"
-                                }
-                                value={passwordData[field.name]}
-                                onChange={handlePasswordChange}
-                                autoComplete={field.autocomplete}
-                                maxLength={128}
-                                minLength={
-                                  field.name === "newPassword" ? 12 : undefined
-                                }
-                                disabled={changingPassword}
-                                aria-invalid={Boolean(
-                                  passwordErrors[field.name]
+                      <form
+                        className="personal-information-form"
+                        onSubmit={handleSaveProfile}
+                        noValidate
+                      >
+                        <div className="personal-information-grid">
+                          {/* FULL NAME */}
+                          <div className="personal-information-field">
+                            {isEditing ? (
+                              <>
+                                <label htmlFor="profile-name">
+                                  Full Name{" "}
+                                  <span className="required-mark">*</span>
+                                </label>
+
+                                <input
+                                  id="profile-name"
+                                  name="name"
+                                  type="text"
+                                  value={formData.name}
+                                  onChange={handleInputChange}
+                                  maxLength={100}
+                                  autoComplete="name"
+                                  placeholder="Enter your full name"
+                                  disabled={saving}
+                                  aria-invalid={Boolean(fieldErrors.name)}
+                                  aria-describedby={
+                                    fieldErrors.name ? "name-error" : undefined
+                                  }
+                                />
+
+                                {fieldErrors.name && (
+                                  <span
+                                    id="name-error"
+                                    className="profile-field-error"
+                                    role="alert"
+                                  >
+                                    {fieldErrors.name}
+                                  </span>
                                 )}
-                                aria-describedby={
-                                  passwordErrors[field.name]
-                                    ? `${field.name}-error`
-                                    : field.name === "newPassword"
-                                      ? "password-requirements"
-                                      : undefined
-                                }
-                              />
+                              </>
+                            ) : (
+                              <>
+                                <div className="profile-field-label">
+                                  Full Name
+                                </div>
 
-                              <button
-                                type="button"
-                                className="password-visibility-button"
-                                onClick={() =>
-                                  togglePasswordVisibility(field.name)
-                                }
-                                disabled={changingPassword}
-                                aria-label={
-                                  showPasswords[field.name]
-                                    ? `Hide ${field.label}`
-                                    : `Show ${field.label}`
-                                }
-                              >
-                                {showPasswords[field.name] ? "Hide" : "Show"}
-                              </button>
-                            </div>
-
-                            {field.name === "newPassword" && (
-                              <span
-                                id="password-requirements"
-                                className="password-requirements"
-                              >
-                                Use 12–128 characters.
-                              </span>
-                            )}
-
-                            {passwordErrors[field.name] && (
-                              <span
-                                id={`${field.name}-error`}
-                                className="password-field-error"
-                                role="alert"
-                              >
-                                {passwordErrors[field.name]}
-                              </span>
+                                <div className="profile-readonly-value">
+                                  {profile.name || "Not provided"}
+                                </div>
+                              </>
                             )}
                           </div>
-                        ))}
 
-                        {passwordMessage.text && (
+                          {/* EMAIL ADDRESS */}
+                          <div className="personal-information-field">
+                            <label htmlFor="profile-email">Email Address</label>
+
+                            <input
+                              id="profile-email"
+                              type="email"
+                              value={profile.email}
+                              readOnly
+                              aria-readonly="true"
+                              className="profile-email-readonly"
+                            />
+
+                            <span className="profile-readonly-hint">
+                              Your registered email cannot be changed here.
+                            </span>
+                          </div>
+
+                          {/* PHONE NUMBER */}
+                          <div className="personal-information-field">
+                            {isEditing ? (
+                              <>
+                                <label htmlFor="profile-phone">
+                                  Phone Number
+                                </label>
+
+                                <input
+                                  id="profile-phone"
+                                  name="phoneNumber"
+                                  type="tel"
+                                  inputMode="numeric"
+                                  pattern="[789][0-9]{9}"
+                                  value={formData.phoneNumber}
+                                  onChange={handlePhoneChange}
+                                  maxLength={10}
+                                  autoComplete="tel"
+                                  placeholder="Enter 10-digit mobile number"
+                                  disabled={saving}
+                                  aria-invalid={Boolean(
+                                    fieldErrors.phoneNumber,
+                                  )}
+                                  aria-describedby={
+                                    fieldErrors.phoneNumber
+                                      ? "phone-error"
+                                      : undefined
+                                  }
+                                />
+
+                                {fieldErrors.phoneNumber && (
+                                  <span
+                                    id="phone-error"
+                                    className="profile-field-error"
+                                    role="alert"
+                                  >
+                                    {fieldErrors.phoneNumber}
+                                  </span>
+                                )}
+                              </>
+                            ) : (
+                              <>
+                                <div className="profile-field-label">
+                                  Phone Number
+                                </div>
+
+                                <div className="profile-readonly-value">
+                                  {profile.phoneNumber || "Not provided"}
+                                </div>
+                              </>
+                            )}
+                          </div>
+
+                          {/* AGE */}
+                          <div className="personal-information-field">
+                            {isEditing ? (
+                              <>
+                                <label htmlFor="profile-age">Age</label>
+
+                                <input
+                                  id="profile-age"
+                                  name="age"
+                                  type="number"
+                                  min="1"
+                                  max="120"
+                                  step="1"
+                                  value={formData.age}
+                                  onChange={handleInputChange}
+                                  placeholder="Enter age"
+                                  disabled={saving}
+                                  aria-invalid={Boolean(fieldErrors.age)}
+                                  aria-describedby={
+                                    fieldErrors.age ? "age-error" : undefined
+                                  }
+                                />
+
+                                {fieldErrors.age && (
+                                  <span
+                                    id="age-error"
+                                    className="profile-field-error"
+                                    role="alert"
+                                  >
+                                    {fieldErrors.age}
+                                  </span>
+                                )}
+                              </>
+                            ) : (
+                              <>
+                                <div className="profile-field-label">Age</div>
+
+                                <div className="profile-readonly-value">
+                                  {profile.age != null
+                                    ? `${profile.age} years`
+                                    : "Not provided"}
+                                </div>
+                              </>
+                            )}
+                          </div>
+
+                          {/* ACCOUNT CREATED */}
+                          <div className="personal-information-field">
+                            <div className="profile-field-label">
+                              Account Created
+                            </div>
+
+                            <div className="profile-readonly-value">
+                              {formatAccountDate(profile.createdAt)}
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* PROFILE FEEDBACK */}
+                        {message.text && (
                           <div
-                            className={`password-feedback ${passwordMessage.type}`}
-                            role={
-                              passwordMessage.type === "error"
-                                ? "alert"
-                                : "status"
-                            }
+                            className={`profile-feedback ${message.type}`}
+                            role={message.type === "error" ? "alert" : "status"}
                             aria-live="polite"
                           >
-                            {passwordMessage.text}
+                            {message.text}
                           </div>
                         )}
 
-                        <div className="password-form-actions">
-                          <button
-                            type="button"
-                            className="password-cancel-button"
-                            onClick={resetPasswordForm}
-                            disabled={changingPassword}
-                          >
-                            Cancel
-                          </button>
+                        {/* EDIT ACTIONS */}
+                        {isEditing && (
+                          <div className="profile-form-actions">
+                            <button
+                              type="button"
+                              className="profile-cancel-button"
+                              onClick={handleCancelEdit}
+                              disabled={saving}
+                            >
+                              Cancel
+                            </button>
 
-                          <button
-                            type="submit"
-                            className="password-submit-button"
-                            disabled={changingPassword}
-                          >
-                            {changingPassword
-                              ? "Updating Password..."
-                              : "Update Password"}
-                          </button>
-                        </div>
+                            <button
+                              type="submit"
+                              className="profile-save-button"
+                              disabled={saving || !hasChanges}
+                            >
+                              {saving ? "Saving..." : "Save Changes"}
+                            </button>
+                          </div>
+                        )}
                       </form>
-                    )}
-
-                    {/* EMAIL SECURITY */}
-                    <div className="security-group-label email-group-label">
-                      EMAIL SECURITY
                     </div>
+                  )}
 
-                    <div className="security-option-card email-security-card">
-                      <div className="security-option-icon email-icon">
-                        <span aria-hidden="true">✉</span>
-                      </div>
+                  {/* ACCOUNT SECURITY */}
+                  {true && (
+                    <div className="account-security-section">
+                      <div className="section-heading">
+                        <div>
+                          <span className="section-eyebrow">
+                            PROTECT YOUR ACCOUNT
+                          </span>
 
-                      <div className="security-option-details">
-                        <h3>Email Verification</h3>
+                          <h2>Account Security</h2>
 
-                        <p>
-                           Check Your VAULTIX Account E-Mail Verification Status
-                        </p>
+                          <p>
+                            Manage your password and check your email
+                            verification status.
+                          </p>
+                        </div>
 
-                        <div className="security-email-address">
-                          {profile.email || "Email not available"}
+                        <div
+                          className="section-heading-icon"
+                          aria-hidden="true"
+                        >
+                          ◈
                         </div>
                       </div>
 
-                      <div className="email-verification-row">
-                        {renderEmailStatus()}
+                      {/* PASSWORD MANAGEMENT */}
+                      <div className="security-group-label">
+                        PASSWORD MANAGEMENT
+                      </div>
+
+                      <div className="security-option-card">
+                        <div className="security-option-icon password-icon">
+                          <span aria-hidden="true">⌑</span>
+                        </div>
+
+                        <div className="security-option-details">
+                          <h3>Change Password</h3>
+
+                          <p>
+                            Update your password to help keep your account
+                            protected.
+                          </p>
+                        </div>
+
+                        <button
+                          type="button"
+                          className="security-option-action"
+                          onClick={() => {
+                            if (showPasswordForm) {
+                              resetPasswordForm();
+                            } else {
+                              setShowPasswordForm(true);
+                              setPasswordErrors({});
+                              setPasswordMessage({ type: "", text: "" });
+                            }
+                          }}
+                          disabled={changingPassword}
+                          aria-expanded={showPasswordForm}
+                          aria-controls="change-password-form"
+                        >
+                          {showPasswordForm ? "Close" : "Change"}
+                          <span aria-hidden="true">
+                            {showPasswordForm ? "−" : "+"}
+                          </span>
+                        </button>
+                      </div>
+
+                      {/* CHANGE PASSWORD FORM */}
+                      {showPasswordForm && (
+                        <form
+                          id="change-password-form"
+                          className="change-password-form"
+                          onSubmit={handleChangePassword}
+                          noValidate
+                        >
+                          <div className="change-password-heading">
+                            <h3>Update Your Password</h3>
+
+                            <p>
+                              Enter your current password and choose a strong
+                              new password.
+                            </p>
+                          </div>
+
+                          {PASSWORD_FIELDS.map((field) => (
+                            <div className="password-field" key={field.name}>
+                              <label htmlFor={field.name}>{field.label}</label>
+
+                              <div className="password-input-wrapper">
+                                <input
+                                  id={field.name}
+                                  name={field.name}
+                                  type={
+                                    showPasswords[field.name]
+                                      ? "text"
+                                      : "password"
+                                  }
+                                  value={passwordData[field.name]}
+                                  onChange={handlePasswordChange}
+                                  autoComplete={field.autocomplete}
+                                  maxLength={128}
+                                  minLength={
+                                    field.name === "newPassword"
+                                      ? 12
+                                      : undefined
+                                  }
+                                  disabled={changingPassword}
+                                  aria-invalid={Boolean(
+                                    passwordErrors[field.name],
+                                  )}
+                                  aria-describedby={
+                                    passwordErrors[field.name]
+                                      ? `${field.name}-error`
+                                      : field.name === "newPassword"
+                                        ? "password-requirements"
+                                        : undefined
+                                  }
+                                />
+
+                                <button
+                                  type="button"
+                                  className="password-visibility-button"
+                                  onClick={() =>
+                                    togglePasswordVisibility(field.name)
+                                  }
+                                  disabled={changingPassword}
+                                  aria-label={
+                                    showPasswords[field.name]
+                                      ? `Hide ${field.label}`
+                                      : `Show ${field.label}`
+                                  }
+                                >
+                                  {showPasswords[field.name] ? "Hide" : "Show"}
+                                </button>
+                              </div>
+
+                              {field.name === "newPassword" && (
+                                <span
+                                  id="password-requirements"
+                                  className="password-requirements"
+                                >
+                                  Use 12–128 characters.
+                                </span>
+                              )}
+
+                              {passwordErrors[field.name] && (
+                                <span
+                                  id={`${field.name}-error`}
+                                  className="password-field-error"
+                                  role="alert"
+                                >
+                                  {passwordErrors[field.name]}
+                                </span>
+                              )}
+                            </div>
+                          ))}
+
+                          {passwordMessage.text && (
+                            <div
+                              className={`password-feedback ${passwordMessage.type}`}
+                              role={
+                                passwordMessage.type === "error"
+                                  ? "alert"
+                                  : "status"
+                              }
+                              aria-live="polite"
+                            >
+                              {passwordMessage.text}
+                            </div>
+                          )}
+
+                          <div className="password-form-actions">
+                            <button
+                              type="button"
+                              className="password-cancel-button"
+                              onClick={resetPasswordForm}
+                              disabled={changingPassword}
+                            >
+                              Cancel
+                            </button>
+
+                            <button
+                              type="submit"
+                              className="password-submit-button"
+                              disabled={changingPassword}
+                            >
+                              {changingPassword
+                                ? "Updating Password..."
+                                : "Update Password"}
+                            </button>
+                          </div>
+                        </form>
+                      )}
+
+                      {/* EMAIL SECURITY */}
+                      <div className="security-group-label email-group-label">
+                        EMAIL SECURITY
+                      </div>
+
+                      <div className="security-option-card email-security-card">
+                        <div className="security-option-icon email-icon">
+                          <span aria-hidden="true">✉</span>
+                        </div>
+
+                        <div className="security-option-details">
+                          <h3>Email Verification</h3>
+
+                          <p>
+                            Check Your VAULTIX Account E-Mail Verification
+                            Status
+                          </p>
+
+                          <div className="security-email-address">
+                            {profile.email || "Email not available"}
+                          </div>
+                        </div>
+
+                        <div className="email-verification-row">
+                          {renderEmailStatus()}
+                        </div>
                       </div>
                     </div>
-                  </div>
-                )}
-              </div>
-            </>
                   )}
-        </main>
-      )}
-    </div>
+                </div>
+              </>
+            )}
+          </main>
+        )}
+      </div>
     </div>
   );
 }
-

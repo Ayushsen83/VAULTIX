@@ -10,7 +10,6 @@
   box-sizing: border-box;
 }
 
-
 .profile-layout {
   --profile-primary: #765039;
   --profile-primary-dark: #56351f;
@@ -27,6 +26,7 @@
   --profile-danger: #a43d32;
   --profile-shadow: 0 4px 16px rgb(49 35 24 / 5%);
 
+  position: relative;
   display: flex;
   align-items: stretch;
   width: 100%;
@@ -34,7 +34,6 @@
   min-width: 0;
   min-height: 100vh;
   min-height: 100dvh;
-  overflow-x: clip;
 
   background: var(--profile-background);
   color: var(--profile-text);
@@ -64,7 +63,6 @@
 /* =====================================================
    MAIN LAYOUT
 ===================================================== */
-
 .profile-main {
   display: flex;
   flex: 1 1 0%;
@@ -74,7 +72,9 @@
   min-width: 0;
   min-height: 100vh;
   min-height: 100dvh;
-  overflow-x: clip;
+}
+.app-sidebar.is-collapsed ~ .profile-main {
+  margin-left: 78px;
 }
 
 .profile-content {
@@ -82,28 +82,24 @@
   max-width: 1420px;
   min-width: 0;
   margin-inline: auto;
-  padding: clamp(22px, 2.5vw, 34px)
-    clamp(18px, 3vw, 42px) 48px;
-}
-
-/* =====================================================
-   PAGE HEADING
-===================================================== */
-
-.profile-page-heading {
-  display: flex;
-  align-items: flex-end;
-  justify-content: space-between;
-  gap: 18px;
-  min-width: 0;
-  margin-bottom: 18px;
+  padding: clamp(22px, 2.5vw, 34px) clamp(18px, 3vw, 42px) 48px;
 }
 
 .profile-page-heading > div:first-child {
   min-width: 0;
 }
 
-.profile-eyebrow,
+.profile-eyebrow {
+  display: block;
+  color: #a36d50;
+  font-family: Inter, Arial, sans-serif;
+  font-size: 10px;
+  font-weight: 750;
+  letter-spacing: 1.45px;
+  line-height: 1.5;
+  text-transform: uppercase;
+}
+
 .section-eyebrow {
   display: block;
   color: #97877a;
@@ -124,6 +120,21 @@
   letter-spacing: -0.5px;
 }
 
+.profile-page-heading {
+  display: block;
+  margin-bottom: 24px;
+  text-align: left;
+}
+
+.profile-page-heading h1 {
+  margin: 8px 0 0;
+  color: #28211c;
+  font-family: "Inter", sans-serif;
+  font-size: 42px;
+  font-weight: 700;
+  line-height: 1.2;
+  letter-spacing: -0.5px;
+}
 .profile-page-heading p {
   max-width: 680px;
   margin: 9px 0 0;
@@ -145,19 +156,13 @@
 
   min-height: 174px;
   margin: 0 0 18px;
-  padding: clamp(20px, 3vw, 32px)
-    clamp(22px, 3.2vw, 38px);
+  padding: clamp(20px, 3vw, 32px) clamp(22px, 3.2vw, 38px);
 
   overflow: hidden;
   border: 1px solid #e7d5c3;
   border-radius: 17px;
 
-  background: linear-gradient(
-    112deg,
-    #f2e4d5 0%,
-    #f8f0e7 55%,
-    #ead7c3 100%
-  );
+  background: linear-gradient(112deg, #f2e4d5 0%, #f8f0e7 55%, #ead7c3 100%);
 
   box-shadow: 0 5px 18px rgb(68 43 25 / 5%);
 }
@@ -301,14 +306,7 @@
   height: 47px;
   place-items: center;
 
-  clip-path: polygon(
-    50% 0,
-    94% 18%,
-    87% 70%,
-    50% 100%,
-    13% 70%,
-    6% 18%
-  );
+  clip-path: polygon(50% 0, 94% 18%, 87% 70%, 50% 100%, 13% 70%, 6% 18%);
 
   background: linear-gradient(145deg, #946c4e, #65432d);
   color: #fff9f2;
@@ -690,7 +688,9 @@
   transition: all 0.18s ease;
 }
 
-.personal-information-form .personal-information-field input:hover:not(:disabled):not(:focus) {
+.personal-information-form
+  .personal-information-field
+  input:hover:not(:disabled):not(:focus) {
   border-color: #b99b80;
 }
 
@@ -714,7 +714,9 @@
   color: #a69b91;
 }
 
-.personal-information-form .personal-information-field input[aria-invalid="true"] {
+.personal-information-form
+  .personal-information-field
+  input[aria-invalid="true"] {
   border-color: #c74b42;
   background: #fffafa;
 }
@@ -1323,7 +1325,7 @@
 }
 
 /* =====================================================
-   LAPTOPS
+   LAPTOPS & MOBILE DRAWER OFFSET
 ===================================================== */
 
 @media (max-width: 1100px) {
@@ -1333,6 +1335,19 @@
 
   .personal-information-grid {
     column-gap: 20px;
+  }
+}
+
+@media (max-width: 1024px) {
+  .profile-main,
+  .app-sidebar.is-collapsed ~ .profile-main {
+    margin-left: 0;
+  }
+
+  .profile-page-heading {
+    margin-left: 52px;
+    padding-left: 0;
+    min-height: 44px;
   }
 }
 
@@ -1354,7 +1369,6 @@
     padding: 20px;
   }
 
-  /* Hide the thin circular pseudo-element line on tablet/mobile */
   .profile-hero-banner::before {
     display: none;
   }
@@ -1656,6 +1670,11 @@
 @media (max-width: 380px) {
   .profile-content {
     padding: 16px 10px 24px;
+  }
+
+  .profile-page-heading {
+    margin-left: 48px;
+    padding-left: 0;
   }
 
   .profile-page-heading h1 {
